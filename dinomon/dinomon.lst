@@ -1,0 +1,1962 @@
+0000-                  4
+0000-                  5                        ; globalne deklaracje "dino-85"
+0000-                  6                        .in     ../common/dino85.inc
+0000-            I     1        ;----------------------------------------------------------------
+0000-            I     2        ; dino85.inc
+0000-            I     3        ;----------------------------------------------------------------
+0000-            I     4
+0000-            I     5        ; general hardware definitions
+0000-            I     6
+0000             I     7        CS1_BASE        .eq     00h
+0020             I     8        CS2_BASE        .eq     20h
+0040             I     9        CS3_BASE        .eq     40h
+0060             I    10        CS4_BASE        .eq     60h
+0080             I    11        CS5_BASE        .eq     80h
+00A0             I    12        CS6_BASE        .eq     0A0h
+0000-            I    13
+0000             I    14        ROM_BEGIN       .eq     0h
+1FFF             I    15        ROM_END         .eq     1FFFh
+0000-            I    16
+8000             I    17        RAM_BEGIN       .eq     8000h
+FFFF             I    18        RAM_END         .eq     0FFFFh
+0000-            I    19
+0000-            I    20        ; begin of RAM reserved for internal purpose
+FD00             I    21        SYS_MEM_BEGIN   .eq     0FD00h
+0000-            I    22
+0000-            I    23        ; initial stack settings
+FCFE             I    24        SYSTEM_STACK    .eq     SYS_MEM_BEGIN-2
+0000-            I    25
+0000-            I    26
+0000-            I    27        ; 8085 CPU interrupt vectors fixed locations
+0000-            I    28
+0008             I    29        RST_1_ROM_VECT  .eq     08h
+0010             I    30        RST_2_ROM_VECT  .eq     10h
+0018             I    31        RST_3_ROM_VECT  .eq     18h
+0020             I    32        RST_4_ROM_VECT  .eq     20h
+0024             I    33        TRAP_ROM_VECT   .eq     24h
+0028             I    34        RST_5_ROM_VECT  .eq     28h
+002C             I    35        RST_55_ROM_VECT .eq     2Ch
+0030             I    36        RST_6_ROM_VECT  .eq     30h
+0034             I    37        RST_65_ROM_VECT .eq     34h
+0038             I    38        RST_7_ROM_VECT  .eq     38h
+003C             I    39        RST_75_ROM_VECT .eq     3Ch
+0000-            I    40
+0000-            I    41
+0000-            I    42        ; consts for system communication module
+0000-            I    43
+0000-            I    44        ; the UART chip
+0000             I    45        SYS_UART_BASE   .eq     CS1_BASE
+0000             I    46        SYS_UART_DATA   .eq     SYS_UART_BASE
+0001             I    47        SYS_UART_CMST   .eq     SYS_UART_BASE+1
+0000-            I    48
+0000-            I    49        ; 8-bit simple I/O - have the same addresses (!)
+0002             I    50        SYS_OUTPORT     .eq     CS1_BASE+2
+0002             I    51        SYS_INPORT      .eq     CS1_BASE+2
+0000-            I    52
+0000-            I    53
+0000-            I    54        ; ========= SYS_MEM do-not-touch area ==============
+0000-            I    55
+0000-            I    56        ; system memory layout (at the top of RAM)
+0000-            I    57        ; 512 bytes reserved for internal usage
+0000-            I    58
+FD00-            I    59                        .or     SYS_MEM_BEGIN
+FD00-            I    60                        .du
+FD00-            I    61
+FD00-            I    62        ; terminal mode, 0 - mono, 1 - decorated/color
+FD00-            I    63        terminalMode    .bs     1
+FD01-            I    64
+FD01-            I    65        ; system serial communication buffer, 128 bytes is enough
+FD01-            I    66        serialBuffer    .bs     80h     ; receive/transmit
+FD81-            I    67        serialBufferEnd:
+FD81-            I    68
+FD81-            I    69        ; copy of last command, may be re-executed
+FD81-            I    70        commandBuffer   .bs     80h
+FE01-            I    71        commandBufferEnd:
+FE01-            I    72
+FE01-            I    73
+FE01-            I    74        ; general purspose text buffer for string operations,
+FE01-            I    75        ; conversions etc...
+FE01-            I    76        textBuffer      .bs     80h     ; receive/transmit/str oper.
+FE81-            I    77        textBufferEnd:
+FE81-            I    78
+FE81-            I    79        ; general purspose text additional buffer for...
+FE81-            I    80        auxBuffer       .bs     80h     ; receive/transmit/str oper.
+FF01-            I    81        auxBufferEnd:
+FF01-            I    82
+FF01-            I    83        ; dynamic interrupt vectors, 3 bytes for each one
+FF01-            I    84        rst1RamVector   .bs     3       ; RST 1
+FF04-            I    85        rst2RamVector   .bs     3       ; RST 2
+FF07-            I    86        rst3RamVector   .bs     3       ; RST 3
+FF0A-            I    87        rst4RamVector   .bs     3       ; RST 4
+FF0D-            I    88        trapRamVector   .bs     3       ; TRAP signal
+FF10-            I    89        rst5RamVector   .bs     3       ; RST 5
+FF13-            I    90        rst55RamVector  .bs     3       ; RST5.5
+FF16-            I    91        rst6RamVector   .bs     3       ; RST 6
+FF19-            I    92        rst65RamVector  .bs     3       ; RST6.5
+FF1C-            I    93        rst7RamVector   .bs     3       ; RST 7
+FF1F-            I    94        rst75RamVector  .bs     3       ; RST7.5
+FF22-            I    95
+FF22-            I    96
+FF22-            I    97        ; system procedures entry points available at fixed
+FF22-            I    98        ; locations as stored in system RAM area
+FF22-            I    99        sysProcJumpTable:
+FF22-            I   100        dnLcdInit       .bs     3       ; as lcdInit
+FF25-            I   101        dnLcdPutChar    .bs     3       ; as lcdPutChar
+FF28-            I   102        dnLcdPutCmd     .bs     3       ; as lcdPutCmd
+FF2B-            I   103        dnLcdPutStr     .bs     3       ; as lcdPutStr
+FF2E-            I   104        dnUartInit      .bs     3       ; as uartInit
+FF31-            I   105        dnUartGetChar   .bs     3       ; as uartGetChar
+FF34-            I   106        dnUartGetStr    .bs     3       ; as uartGetStr
+FF37-            I   107        dnUartPutChar   .bs     3       ; as uartPutChar
+FF3A-            I   108        dnUartPutStr    .bs     3       ; as uartPutStr
+FF3D-            I   109        dnMemCopy       .bs     3       ; as memCopy
+FF40-            I   110        dnMemFill       .bs     3       ; as memFill
+FF43-            I   111        sysProcJumpTableEnd:
+FF43-            I   112                        .ed
+FF43-            I   113        ; end of dino85.inc
+FF43-                  7
+FF43-                  8                        ; makra i inne helpery
+FF43-                  9                        .in     dino85.mac
+FF43-            I     1
+FF43-            I     2        LENGTH  .ma destReg, dataLabel
+FF43-            I     3                        mvi     ]1,]2End-]2
+FF43-            I     4                        .em
+FF43-            I     5
+FF43-            I     6
+FF43-            I     7        ADD_CMD_HANDLER .ma userInputPtr,commandName
+FF43-            I     8                        lxi     B,]1
+FF43-            I     9                        lxi     D,]2Name
+FF43-            I    10                        mvi     L,]2NameEnd-]2Name
+FF43-            I    11                        call    strEquals
+FF43-            I    12                        jc      ]2Handler
+FF43-            I    13                        .em
+FF43-            I    14
+FF43-            I    15
+FF43-            I    16
+FF43-            I    17        DEF_CMD_NAME    .ma     commandTemplate,commandName
+FF43-            I    18        ]2Name:         .db     "]1"
+FF43-            I    19        ]2NameEnd:
+FF43-            I    20                        .em
+FF43-            I    21
+FF43-            I    22
+FF43-            I    23
+FF43-            I    24        DEF_SYS_PROC_JUMP       .ma
+FF43-            I    25                                .db     JMP_OPC
+FF43-            I    26                                .dw     ]1
+FF43-            I    27                                .em
+FF43-            I    28
+FF43-            I    29
+FF43-            I    30        SET_CY_FLAG             .ma
+FF43-            I    31                                stc     ; CY = 1
+FF43-            I    32                                .em
+FF43-            I    33
+FF43-            I    34
+FF43-            I    35        CLEAR_CY_FLAG           .ma
+FF43-            I    36                                stc     ; CY = 1
+FF43-            I    37                                cmc     ; CY = /CY = 0
+FF43-            I    38                                .em
+FF43-            I    39
+FF43-            I    40
+FF43-                 10
+00C9                  11        RET_OPC         .eq     0C9h            ; kod rozkazu RET
+0000                  12        NOP_OPC         .eq     00h             ; kod rozkazu NOP
+00C3                  13        JMP_OPC         .eq     0C3h            ; kod rozkazu JMP nnnn
+00CD                  14        CALL_OPC        .eq     0CDh            ; kod rozkazu CALL nnnn
+000D                  15        CR              .eq     0Dh             ; /r
+000A                  16        LF              .eq     0Ah             ; /n
+FF43-                 17
+FF43-                 18
+0000-                 19                        .or     ROM_BEGIN
+0000-                 20
+0000-                 21                        ; stos systemowy
+0000-31 FE FC         22 (  10)                 lxi     SP,SYSTEM_STACK
+0003-                 23
+0003-                 24                        ; i idziemy do kodu gwnego dina
+0003-C3 3F 00         25 (   7)                 jmp     dinoMain
+0006-                 26
+0006-                 27                        ; przekierowania staych wektorw przerwa
+0006-                 28                        ; na grny RAM
+0006-                 29
+0006-                 30                        ; RST 1 - programowe
+0008-                 31                        .no     RST_1_ROM_VECT
+0008-C3 01 FF         32 (   7)                 jmp     rst1RamVector
+000B-                 33
+000B-                 34                        ; RST 2 - programowe
+0010-                 35                        .no     RST_2_ROM_VECT
+0010-C3 04 FF         36 (   7)                 jmp     rst2RamVector
+0013-                 37
+0013-                 38                        ; RST 3 - programowe
+0018-                 39                        .no     RST_3_ROM_VECT
+0018-C3 07 FF         40 (   7)                 jmp     rst3RamVector
+001B-                 41
+001B-                 42                        ; RST 4 - programowe
+0020-                 43                        .no     RST_4_ROM_VECT
+0020-C3 0A FF         44 (   7)                 jmp     rst4RamVector
+0023-                 45
+0023-                 46                        ; TRAP niemaskowalne
+0024-                 47                        .no     TRAP_ROM_VECT
+0024-C3 0D FF         48 (   7)                 jmp     trapRamVector
+0027-                 49
+0027-                 50                        ; RST 5 - programowe
+0028-                 51                        .no     RST_5_ROM_VECT
+0028-C3 10 FF         52 (   7)                 jmp     rst5RamVector
+002B-                 53
+002B-                 54                        ; RST_55 maskowalne
+002C-                 55                        .no     RST_55_ROM_VECT
+002C-C3 13 FF         56 (   7)                 jmp     rst55RamVector
+002F-                 57
+002F-                 58                        ; RST 6 - programowe
+0030-                 59                        .no     RST_6_ROM_VECT
+0030-C3 16 FF         60 (   7)                 jmp     rst6RamVector
+0033-                 61
+0033-                 62                        ; RST_65 maskowalne
+0034-                 63                        .no     RST_65_ROM_VECT
+0034-C3 19 FF         64 (   7)                 jmp     rst65RamVector
+0037-                 65
+0037-                 66                        ; RST 7 - programowe
+0038-                 67                        .no     RST_7_ROM_VECT
+0038-C3 1C FF         68 (   7)                 jmp     rst7RamVector
+003B-                 69
+003B-                 70                        ; RST_75 naskowalne
+003C-                 71                        .no     RST_75_ROM_VECT
+003C-C3 1F FF         72 (   7)                 jmp     rst75RamVector
+003F-                 73
+003F-                 74
+003F-                 75                        ;
+003F-                 76                        ; to jest program gwny - interpreter/loader
+003F-                 77                        ;
+003F-                 78        dinoMain:
+003F-                 79                        ; zainicjuj wektor TRAP na samym pocztku
+003F-3E C9            80 (   7)                 mvi     A,RET_OPC
+0041-32 0D FF         81 (  13)                 sta     trapRamVector
+0044-                 82
+0044-                 83                        ; inicjacja mapy z adresami udostpnionych procedur
+0044-                 84                        ; systemowych
+0044-                 85                        ; content of sysProcJumpTableDef to location
+0044-                 86                        ; pointed by sysProcJumpTable
+0044-01 ED 08         87 (  10)                 lxi     B,sysProcJumpTableDef
+0047-11 22 FF         88 (  10)                 lxi     D,sysProcJumpTable
+004A-                 89                        >LENGTH L,sysProcJumpTableDef
+004A-2E 21        M    1 (   7)                 mvi     L,sysProcJumpTableDefEnd-sysProcJumpTableDef
+004C-CD 4B 07         90 (  18)                 call    memCopy
+004F-                 91
+004F-                 92                        ; user code autostart feature - ale kicha :-) /* tasza */
+004F-                 93                        ;rim
+004F-                 94                        ;ani    80h     ; maska na bit 7 czyli stan SID
+004F-                 95                        ;jnz    RAM_BEGIN
+004F-                 96                        ;SID jednak = 0 (zworka zapieta), kontynuuj program monitora
+004F-                 97                        ;
+004F-                 98
+004F-                 99                        ; init serial port, then send welcome message
+004F-CD 5C 07        100 (  18)                 call    uartInit
+0052-CD 0A 08        101 (  18)                 call    sendWelcomeMessage
+0055-                102
+0055-                103                        ; clear buffers
+0055-01 01 FD        104 (  10)                 lxi     B,serialBuffer
+0058-3E 00           105 (   7)                 mvi     A,0
+005A-                106                        >LENGTH L,serialBuffer
+005A-2E 80        M    1 (   7)                 mvi     L,serialBufferEnd-serialBuffer
+005C-CD 3E 07        107 (  18)                 call    memFill
+005F-                108
+005F-01 81 FD        109 (  10)                 lxi     B,commandBuffer
+0062-3E 00           110 (   7)                 mvi     A,0
+0064-                111                        >LENGTH L,commandBuffer
+0064-2E 80        M    1 (   7)                 mvi     L,commandBufferEnd-commandBuffer
+0066-CD 3E 07        112 (  18)                 call    memFill
+0069-                113
+0069-01 01 FE        114 (  10)                 lxi     B,textBuffer
+006C-3E 00           115 (   7)                 mvi     A,0
+006E-                116                        >LENGTH L,textBuffer
+006E-2E 80        M    1 (   7)                 mvi     L,textBufferEnd-textBuffer
+0070-CD 3E 07        117 (  18)                 call    memFill
+0073-                118
+0073-                119        dinoMonLoop:
+0073-                120                        ; czekaj na polecenie z terminala
+0073-01 01 FD        121 (  10)                 lxi     B,serialBuffer
+0076-                122                        >LENGTH L,serialBuffer
+0076-2E 80        M    1 (   7)                 mvi     L,serialBufferEnd-serialBuffer
+0078-CD BD 07        123 (  18)                 call    uartGetStr
+007B-                124
+007B-                125                        ; ok, cos jest
+007B-                126                        ; porwnaj z "."
+007B-                127                        ; jeeli . to wywoaj ostatnio nadesan komend
+007B-                128                        ; jeell nie . to interpretuj jako now
+007B-                129
+007B-01 01 FD        130 (  10)                 lxi     B,serialBuffer
+007E-0A              131 (   7)                 ldax    B
+007F-FE 2E           132 (   7)                 cpi     '.'
+0081-CA 8F 00        133 (7/10)                 jz      .processLastCommand
+0084-                134
+0084-                135                        ; jednak nowa, przepisz do commandBuffer
+0084-01 01 FD        136 (  10)                 lxi     B,serialBuffer
+0087-11 81 FD        137 (  10)                 lxi     D,commandBuffer
+008A-                138                        >LENGTH L,serialBuffer
+008A-2E 80        M    1 (   7)                 mvi     L,serialBufferEnd-serialBuffer
+008C-CD 4B 07        139 (  18)                 call    memCopy
+008F-                140
+008F-                141        .processLastCommand:
+008F-                142                        ; CRLF aby zachowa porzdek na terminalu
+008F-CD 4E 01        143 (  18)                 call    sendCrLf
+0092-                144                        ;
+0092-                145                        >ADD_CMD_HANDLER commandBuffer,i2cReadCmd
+0092-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+0095-11 C2 08     M    2 (  10)                 lxi     D,i2cReadCmdName
+0098-2E 04        M    3 (   7)                 mvi     L,i2cReadCmdNameEnd-i2cReadCmdName
+009A-CD 20 07     M    4 (  18)                 call    strEquals
+009D-DA C2 02     M    5 (7/10)                 jc      i2cReadCmdHandler
+00A0-                146                        >ADD_CMD_HANDLER commandBuffer,i2cWriteCmd
+00A0-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00A3-11 C6 08     M    2 (  10)                 lxi     D,i2cWriteCmdName
+00A6-2E 04        M    3 (   7)                 mvi     L,i2cWriteCmdNameEnd-i2cWriteCmdName
+00A8-CD 20 07     M    4 (  18)                 call    strEquals
+00AB-DA EA 02     M    5 (7/10)                 jc      i2cWriteCmdHandler
+00AE-                147                        >ADD_CMD_HANDLER commandBuffer,setTimeCmd
+00AE-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00B1-11 CA 08     M    2 (  10)                 lxi     D,setTimeCmdName
+00B4-2E 03        M    3 (   7)                 mvi     L,setTimeCmdNameEnd-setTimeCmdName
+00B6-CD 20 07     M    4 (  18)                 call    strEquals
+00B9-DA 13 03     M    5 (7/10)                 jc      setTimeCmdHandler
+00BC-                148                        >ADD_CMD_HANDLER commandBuffer,getTimeCmd
+00BC-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00BF-11 CD 08     M    2 (  10)                 lxi     D,getTimeCmdName
+00C2-2E 02        M    3 (   7)                 mvi     L,getTimeCmdNameEnd-getTimeCmdName
+00C4-CD 20 07     M    4 (  18)                 call    strEquals
+00C7-DA 3B 03     M    5 (7/10)                 jc      getTimeCmdHandler
+00CA-                149                        >ADD_CMD_HANDLER commandBuffer,setDateCmd
+00CA-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00CD-11 CF 08     M    2 (  10)                 lxi     D,setDateCmdName
+00D0-2E 03        M    3 (   7)                 mvi     L,setDateCmdNameEnd-setDateCmdName
+00D2-CD 20 07     M    4 (  18)                 call    strEquals
+00D5-DA 63 03     M    5 (7/10)                 jc      setDateCmdHandler
+00D8-                150                        >ADD_CMD_HANDLER commandBuffer,getDateCmd
+00D8-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00DB-11 D2 08     M    2 (  10)                 lxi     D,getDateCmdName
+00DE-2E 02        M    3 (   7)                 mvi     L,getDateCmdNameEnd-getDateCmdName
+00E0-CD 20 07     M    4 (  18)                 call    strEquals
+00E3-DA 8B 03     M    5 (7/10)                 jc      getDateCmdHandler
+00E6-                151                        >ADD_CMD_HANDLER commandBuffer,memoryDumpToScreenCmd
+00E6-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00E9-11 D4 08     M    2 (  10)                 lxi     D,memoryDumpToScreenCmdName
+00EC-2E 03        M    3 (   7)                 mvi     L,memoryDumpToScreenCmdNameEnd-memoryDumpToScreenCmdName
+00EE-CD 20 07     M    4 (  18)                 call    strEquals
+00F1-DA B3 03     M    5 (7/10)                 jc      memoryDumpToScreenCmdHandler
+00F4-                152                        >ADD_CMD_HANDLER commandBuffer,memoryDumpToIntelHexCmd
+00F4-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+00F7-11 D7 08     M    2 (  10)                 lxi     D,memoryDumpToIntelHexCmdName
+00FA-2E 03        M    3 (   7)                 mvi     L,memoryDumpToIntelHexCmdNameEnd-memoryDumpToIntelHexCmdName
+00FC-CD 20 07     M    4 (  18)                 call    strEquals
+00FF-DA 8C 04     M    5 (7/10)                 jc      memoryDumpToIntelHexCmdHandler
+0102-                153                        >ADD_CMD_HANDLER commandBuffer,runCmd
+0102-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+0105-11 DA 08     M    2 (  10)                 lxi     D,runCmdName
+0108-2E 04        M    3 (   7)                 mvi     L,runCmdNameEnd-runCmdName
+010A-CD 20 07     M    4 (  18)                 call    strEquals
+010D-DA C1 04     M    5 (7/10)                 jc      runCmdHandler
+0110-                154                        >ADD_CMD_HANDLER commandBuffer,resetCmd
+0110-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+0113-11 DE 08     M    2 (  10)                 lxi     D,resetCmdName
+0116-2E 05        M    3 (   7)                 mvi     L,resetCmdNameEnd-resetCmdName
+0118-CD 20 07     M    4 (  18)                 call    strEquals
+011B-DA E5 04     M    5 (7/10)                 jc      resetCmdHandler
+011E-                155                        >ADD_CMD_HANDLER commandBuffer,inputFromPortCmd
+011E-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+0121-11 E3 08     M    2 (  10)                 lxi     D,inputFromPortCmdName
+0124-2E 03        M    3 (   7)                 mvi     L,inputFromPortCmdNameEnd-inputFromPortCmdName
+0126-CD 20 07     M    4 (  18)                 call    strEquals
+0129-DA 0B 05     M    5 (7/10)                 jc      inputFromPortCmdHandler
+012C-                156                        >ADD_CMD_HANDLER commandBuffer,outputToPortCmd
+012C-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+012F-11 E6 08     M    2 (  10)                 lxi     D,outputToPortCmdName
+0132-2E 04        M    3 (   7)                 mvi     L,outputToPortCmdNameEnd-outputToPortCmdName
+0134-CD 20 07     M    4 (  18)                 call    strEquals
+0137-DA 64 05     M    5 (7/10)                 jc      outputToPortCmdHandler
+013A-                157                        >ADD_CMD_HANDLER commandBuffer,editMemoryCmd
+013A-01 81 FD     M    1 (  10)                 lxi     B,commandBuffer
+013D-11 EA 08     M    2 (  10)                 lxi     D,editMemoryCmdName
+0140-2E 03        M    3 (   7)                 mvi     L,editMemoryCmdNameEnd-editMemoryCmdName
+0142-CD 20 07     M    4 (  18)                 call    strEquals
+0145-DA C5 05     M    5 (7/10)                 jc      editMemoryCmdHandler
+0148-                158
+0148-                159                        ; unknown command - report error?
+0148-CD 16 08        160 (  18)                 call    sendUnknownCommandMsg
+014B-                161                        ; continue interpreter loop
+014B-C3 73 00        162 (   7)                 jmp     dinoMonLoop
+014E-                163
+014E-                164
+014E-                165        ; wysya CR-LF na terminal
+014E-                166        sendCrLf:       ;
+014E-C5              167 (  12)                 push    B
+014F-01 57 01        168 (  10)                 lxi     B,.CRLF
+0152-CD E2 07        169 (  18)                 call    uartPutStr
+0155-C1              170 (  10)                 pop     B
+0156-C9              171 (  10)                 ret
+0157-0D 0A 00        172        .CRLF:          .db     CR,LF,0
+015A-                173
+015A-                174
+015A-                175
+015A-                176        ;++ to be deleted!!!
+015A-                177        processRestart:
+015A-01 B7 02        178 (  10)                 lxi     B,.m2
+015D-CD E2 07        179 (  18)                 call    uartPutStr
+0160-                180                        ; pikne, cudowne ale skuteczne /* tasza */
+0160-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           181                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0182-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           182                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+01A4-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           183                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+01C6-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           184                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+01E8-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           185                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+020A-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           186                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+022C-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           187                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+024E-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           188                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0270-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           189                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0292-00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00 00 00 
+     00 00           190                        .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+02B4-C3 00 00        191 (   7)                 jmp     ROM_BEGIN
+02B7-72 65 62 6F 
+     6F 74 0D 0A 
+     0D 0A 00        192        .m2:            .db     "reboot",13,10,13,10,0
+02C2-                193        ;--
+02C2-                194
+02C2-                195
+02C2-                196
+02C2-                197        ;------- dino-mon commands handlers implementation ---------------
+02C2-                198
+02C2-                199        ;-----------------------------------------------------------------
+02C2-                200        ; "i2rb" command - reads byte from device present on I2C bus
+02C2-                201        ; syntax:
+02C2-                202        ;       i2rb hh nnnn - for long (16-bit) internal address
+02C2-                203        ;       or
+02C2-                204        ;       i2rb hh nn - for short (8-bit) internal address
+02C2-                205        ; where:
+02C2-                206        ;       hh - hardware (bus) address, application specific
+02C2-                207        ;       nn,nnnn - internal register or memory location to read
+02C2-                208        ;
+02C2-                209        i2cReadCmdHandler:
+02C2-01 CB 02        210 (  10)                 lxi     B,.txt
+02C5-CD E2 07        211 (  18)                 call    uartPutStr
+02C8-C3 73 00        212 (   7)                 jmp     dinoMonLoop
+02CB-69 32 63 52 
+     65 61 64 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        213        .txt:           .db     "i2cReadCmdHandler is here...",CR,LF,0
+02EA-                214
+02EA-                215        ;-----------------------------------------------------------------
+02EA-                216        ; "i2wb" command - writes byte to device present on I2C bus
+02EA-                217        ; syntax:
+02EA-                218        ;       i2wb hh nnnn dd - for long (16-bit) internal address
+02EA-                219        ;       or
+02EA-                220        ;       i2wb hh nn dd - for short (8-bit) internal address
+02EA-                221        ; where:
+02EA-                222        ;       hh - hardware (bus) address, application specific
+02EA-                223        ;       nn,nnnn - internal register or memory location to read
+02EA-                224        ;       dd - data to be written to specified location
+02EA-                225        ;
+02EA-                226        i2cWriteCmdHandler:
+02EA-01 F3 02        227 (  10)                 lxi     B,.txt
+02ED-CD E2 07        228 (  18)                 call    uartPutStr
+02F0-C3 73 00        229 (   7)                 jmp     dinoMonLoop
+02F3-69 32 63 57 
+     72 69 74 65 
+     43 6D 64 48 
+     61 6E 64 6C 
+     65 72 20 69 
+     73 20 68 65 
+     72 65 2E 2E 
+     2E 0D 0A 00     230        .txt:           .db     "i2cWriteCmdHandler is here...",CR,LF,0
+0313-                231
+0313-                232
+0313-                233
+0313-                234        ;-----------------------------------------------------------------
+0313-                235        ; "st" command - sets current time (comm. module specific feature)
+0313-                236        ; syntax:
+0313-                237        ;       st hh mm ss
+0313-                238        ; where:
+0313-                239        ;       hh - hours (bcd)
+0313-                240        ;       mm - minutes (bcd)
+0313-                241        ;       ss - seconds (bcd)
+0313-                242        ;
+0313-                243        setTimeCmdHandler:
+0313-01 1C 03        244 (  10)                 lxi     B,.txt
+0316-CD E2 07        245 (  18)                 call    uartPutStr
+0319-C3 73 00        246 (   7)                 jmp     dinoMonLoop
+031C-73 65 74 54 
+     69 6D 65 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        247        .txt:           .db     "setTimeCmdHandler is here...",CR,LF,0
+033B-                248
+033B-                249
+033B-                250
+033B-                251        ;-----------------------------------------------------------------
+033B-                252        ; "gt" command - gets current time (comm. module specific feature)
+033B-                253        ; syntax:
+033B-                254        ;       gt
+033B-                255        ;
+033B-                256        getTimeCmdHandler:
+033B-01 44 03        257 (  10)                 lxi     B,.txt
+033E-CD E2 07        258 (  18)                 call    uartPutStr
+0341-C3 73 00        259 (   7)                 jmp     dinoMonLoop
+0344-67 65 74 54 
+     69 6D 65 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        260        .txt:           .db     "getTimeCmdHandler is here...",CR,LF,0
+0363-                261
+0363-                262
+0363-                263
+0363-                264        ;-----------------------------------------------------------------
+0363-                265        ; "sd" command - sets current date (comm. module specific feature)
+0363-                266        ; syntax:
+0363-                267        ;       sd yyyy mm dd
+0363-                268        ; where:
+0363-                269        ;       yyyy - year (bcd)
+0363-                270        ;       mm - month (bcd)
+0363-                271        ;       dd - day (bcd)
+0363-                272        ;
+0363-                273        setDateCmdHandler:
+0363-01 6C 03        274 (  10)                 lxi     B,.txt
+0366-CD E2 07        275 (  18)                 call    uartPutStr
+0369-C3 73 00        276 (   7)                 jmp     dinoMonLoop
+036C-73 65 74 44 
+     61 74 65 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        277        .txt:           .db     "setDateCmdHandler is here...",CR,LF,0
+038B-                278
+038B-                279
+038B-                280        ;-----------------------------------------------------------------
+038B-                281        ; "gd" command - gets current date (comm. module specific feature)
+038B-                282        ; syntax:
+038B-                283        ;       gd
+038B-                284        ;
+038B-                285        getDateCmdHandler:
+038B-01 94 03        286 (  10)                 lxi     B,.txt
+038E-CD E2 07        287 (  18)                 call    uartPutStr
+0391-C3 73 00        288 (   7)                 jmp     dinoMonLoop
+0394-67 65 74 44 
+     61 74 65 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        289        .txt:           .db     "getDateCmdHandler is here...",CR,LF,0
+03B3-                290
+03B3-                291
+03B3-                292
+03B3-                293        ;-----------------------------------------------------------------
+03B3-                294        ; "md" command - memory dump to screen in human readable format
+03B3-                295        ; syntax:
+03B3-                296        ;       md bbbb eeee - dumps memory content between bbbb and eeee adresses
+03B3-                297        ;       or
+03B3-                298        ;       md bbbb - dumps from bbbb address but only 10h mem locations
+03B3-                299        ; where:
+03B3-                300        ;       bbbb - start address
+03B3-                301        ;       eeee - end address
+03B3-                302        ;
+03B3-                303        memoryDumpToScreenCmdHandler:
+03B3-                304                        ; clear temp text buff
+03B3-01 01 FE        305 (  10)                 lxi     B,textBuffer
+03B6-3E 00           306 (   7)                 mvi     A,0
+03B8-2E 20           307 (   7)                 mvi     L,32
+03BA-CD 3E 07        308 (  18)                 call    memFill
+03BD-                309
+03BD-                310                        ; skip spaces after command name,
+03BD-                311                        ; stop at first parameter
+03BD-01 83 FD        312 (  10)                 lxi     B,commandBuffer+2
+03C0-CD F3 06        313 (  18)                 call    skipSpaces
+03C3-                314
+03C3-                315                        ; 1-st par, start address, 16 bit
+03C3-                316                        ; convert four next chars to word (two bytes)
+03C3-CD 13 06        317 (  18)                 call    strHex2Word
+03C6-D2 74 04        318 (7/10)                 jnc     .inputError
+03C9-                319                        ; result ok
+03C9-                320
+03C9-E5              321 (  12)                 push    H       ; DE := HL
+03CA-D1              322 (  10)                 pop     D
+03CB-                323
+03CB-03              324 (   6)                 inx     B
+03CC-03              325 (   6)                 inx     B
+03CD-03              326 (   6)                 inx     B
+03CE-03              327 (   6)                 inx     B
+03CF-CD F3 06        328 (  18)                 call    skipSpaces
+03D2-                329
+03D2-CD 13 06        330 (  18)                 call    strHex2Word
+03D5-DA E4 03        331 (7/10)                 jc      .secParamOk
+03D8-                332                        ; no sec param then prepare it
+03D8-                333
+03D8-D5              334 (  12)                 push    D
+03D9-E1              335 (  10)                 pop     H
+03DA-7D              336 (   4)                 mov     A,L
+03DB-E6 F0           337 (   7)                 ani     0F0h
+03DD-C6 10           338 (   7)                 adi     10h
+03DF-6F              339 (   4)                 mov     L,A
+03E0-7C              340 (   4)                 mov     A,H
+03E1-CE 00           341 (   7)                 aci     0
+03E3-67              342 (   4)                 mov     H,A
+03E4-                343
+03E4-                344
+03E4-                345        .secParamOk:
+03E4-                346
+03E4-                347                        ; result ok, HL valid
+03E4-                348
+03E4-                349                        ; test dump 0000...0100
+03E4-                350
+03E4-                351                        ; hl - end addr
+03E4-                352                        ; de = begin (current), incremeted
+03E4-                353
+03E4-                354                        ;save this values for end report
+03E4-D5              355 (  12)                 push    D               ; save DE
+03E5-E5              356 (  12)                 push    H               ; save HL
+03E6-                357
+03E6-                358        .continue:
+03E6-                359                        ; print address of data block if the lowest nibble is 0 (mod 16)
+03E6-                360
+03E6-7B              361 (   4)                 mov     A,E
+03E7-E6 0F           362 (   7)                 ani     0Fh
+03E9-C2 04 04        363 (7/10)                 jnz     .noAddress
+03EC-                364
+03EC-                365                        ; print block address
+03EC-D5              366 (  12)                 push    D               ; save DE
+03ED-E5              367 (  12)                 push    H               ; save HL
+03EE-                368
+03EE-D5              369 (  12)                 push    D               ; HL := DE
+03EF-E1              370 (  10)                 pop     H
+03F0-                371
+03F0-01 01 FE        372 (  10)                 lxi     B,textBuffer    ; convert & send address of data block
+03F3-CD 8A 06        373 (  18)                 call    word2HexStr
+03F6-01 01 FE        374 (  10)                 lxi     B,textBuffer
+03F9-CD E2 07        375 (  18)                 call    uartPutStr
+03FC-                376
+03FC-01 7A 04        377 (  10)                 lxi     B,.separatorTxt
+03FF-CD E2 07        378 (  18)                 call    uartPutStr
+0402-                379
+0402-E1              380 (  10)                 pop     H               ; get DE back
+0403-D1              381 (  10)                 pop     D               ; get DE back
+0404-                382
+0404-                383        .noAddress:
+0404-                384
+0404-1A              385 (   7)                 ldax    D               ; A := *DE
+0405-                386
+0405-01 01 FE        387 (  10)                 lxi     B,textBuffer
+0408-CD 6E 06        388 (  18)                 call    byte2HexStr
+040B-01 01 FE        389 (  10)                 lxi     B,textBuffer
+040E-CD E2 07        390 (  18)                 call    uartPutStr
+0411-                391
+0411-3E 20           392 (   7)                 mvi     A,' '
+0413-CD D6 07        393 (  18)                 call    uartPutChar
+0416-                394
+0416-13              395 (   6)                 inx     D               ; DE++
+0417-                396
+0417-7B              397 (   4)                 mov     A,E
+0418-E6 0F           398 (   7)                 ani     0Fh
+041A-C2 27 04        399 (7/10)                 jnz     .noLineBreak
+041D-                400
+041D-                401                        ; CR,LF here
+041D-3E 0D           402 (   7)                 mvi     A,CR
+041F-CD D6 07        403 (  18)                 call    uartPutChar
+0422-3E 0A           404 (   7)                 mvi     A,LF
+0424-CD D6 07        405 (  18)                 call    uartPutChar
+0427-                406
+0427-                407        .noLineBreak:
+0427-7B              408 (   4)                 mov     A,E
+0428-95              409 (   4)                 sub     L
+0429-7A              410 (   4)                 mov     A,D
+042A-9C              411 (   4)                 sbb     H
+042B-DA E6 03        412 (7/10)                 jc      .continue
+042E-                413                        ; CY = 0 current >= end , CY=1 current < end
+042E-                414
+042E-7B              415 (   4)                 mov     A,E
+042F-E6 0F           416 (   7)                 ani     0Fh
+0431-CA 3E 04        417 (7/10)                 jz      .noFinalLineBreak
+0434-                418
+0434-                419                        ; CR,LF here
+0434-3E 0D           420 (   7)                 mvi     A,CR
+0436-CD D6 07        421 (  18)                 call    uartPutChar
+0439-3E 0A           422 (   7)                 mvi     A,LF
+043B-CD D6 07        423 (  18)                 call    uartPutChar
+043E-                424
+043E-                425        .noFinalLineBreak:
+043E-                426
+043E-                427
+043E-                428                        ; restore user input
+043E-E1              429 (  10)                 pop     H
+043F-D1              430 (  10)                 pop     D
+0440-                431
+0440-                432
+0440-                433                        ; report status and go back to  mon
+0440-                434
+0440-CD F8 07        435 (  18)                 call    sendOk
+0443-                436
+0443-01 7F 04        437 (  10)                 lxi     B,.txt1
+0446-CD E2 07        438 (  18)                 call    uartPutStr
+0449-                439
+0449-E5              440 (  12)                 push    H
+044A-                441
+044A-D5              442 (  12)                 push    D               ; HL := DE
+044B-E1              443 (  10)                 pop     H
+044C-01 01 FE        444 (  10)                 lxi     B,textBuffer
+044F-CD 8A 06        445 (  18)                 call    word2HexStr
+0452-01 01 FE        446 (  10)                 lxi     B,textBuffer
+0455-CD E2 07        447 (  18)                 call    uartPutStr
+0458-                448
+0458-01 83 04        449 (  10)                 lxi     B,.txt2
+045B-CD E2 07        450 (  18)                 call    uartPutStr
+045E-                451
+045E-E1              452 (  10)                 pop     H
+045F-                453
+045F-01 01 FE        454 (  10)                 lxi     B,textBuffer
+0462-CD 8A 06        455 (  18)                 call    word2HexStr
+0465-01 01 FE        456 (  10)                 lxi     B,textBuffer
+0468-CD E2 07        457 (  18)                 call    uartPutStr
+046B-                458
+046B-01 85 04        459 (  10)                 lxi     B,.txt3
+046E-CD E2 07        460 (  18)                 call    uartPutStr
+0471-                461
+0471-                462        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0471-                463        ;               lxi     B,textBuffer
+0471-                464        ;               mvi     A,0
+0471-                465        ;               stax    B
+0471-                466        ;               lxi     D,.txt1
+0471-                467        ;               call    strAppend
+0471-                468        ;               lxi     D,.txt2
+0471-                469        ;               call    strAppend
+0471-                470        ;               lxi     D,.txt3
+0471-                471        ;               call    strAppend
+0471-                472        ;               lxi     D,.CRLF
+0471-                473        ;               call    strAppend
+0471-                474        ;               lxi     B,textBuffer
+0471-                475        ;               call    uartPutStr
+0471-                476        ;;;;;;;;;;;;;;;;;;;;;;;;
+0471-                477
+0471-                478                        ; back to interpreter loop
+0471-C3 73 00        479 (   7)                 jmp     dinoMonLoop
+0474-                480
+0474-                481        .inputError:
+0474-CD 22 08        482 (  18)                 call    sendInvalidInputParamMsg
+0477-C3 73 00        483 (   7)                 jmp     dinoMonLoop
+047A-                484
+047A-20 2D 3E 20 
+     00              485        .separatorTxt:  .db     " -> ",0
+047F-4D 44 28 00     486        .txt1:          .db     "MD(",0
+0483-2C 00           487        .txt2:          .db     ",",0
+0485-29 0D 0A 00     488        .txt3:          .db     ")",CR,LF,0
+0489-0D 0A 00        489        .CRLF:          .db     CR,LF,0
+048C-                490
+048C-                491
+048C-                492
+048C-                493
+048C-                494
+048C-                495        ;-----------------------------------------------------------------
+048C-                496        ; "mi" command - memory dump to screen as IntelHex record(s)
+048C-                497        ; syntax:
+048C-                498        ;       mi bbbb eeee - dumps memory content between bbbb and eeee adresses
+048C-                499        ;       or
+048C-                500        ;       mi bbbb - dumps from bbbb address but only 10h mem locations
+048C-                501        ; where:
+048C-                502        ;       bbbb - start address
+048C-                503        ;       eeee - end address
+048C-                504        ;
+048C-                505        memoryDumpToIntelHexCmdHandler:
+048C-01 95 04        506 (  10)                 lxi     B,.txt
+048F-CD E2 07        507 (  18)                 call    uartPutStr
+0492-C3 73 00        508 (   7)                 jmp     dinoMonLoop
+0495-6D 65 6D 6F 
+     72 79 44 75 
+     6D 70 54 6F 
+     49 6E 74 65 
+     6C 48 65 78 
+     43 6D 64 48 
+     61 6E 64 6C 
+     65 72 20 69 
+     73 20 68 65 
+     72 65 2E 2E 
+     2E 0D 0A 00     509        .txt:           .db     "memoryDumpToIntelHexCmdHandler is here...",CR,LF,0
+04C1-                510
+04C1-                511
+04C1-                512        ;-----------------------------------------------------------------
+04C1-                513        ; "run" command - starts user code
+04C1-                514        ; syntax:
+04C1-                515        ;       run nnnn
+04C1-                516        ; where:
+04C1-                517        ;       nnnn - application entry point
+04C1-                518        ;
+04C1-                519        runCmdHandler:
+04C1-01 CA 04        520 (  10)                 lxi     B,.txt
+04C4-CD E2 07        521 (  18)                 call    uartPutStr
+04C7-C3 73 00        522 (   7)                 jmp     dinoMonLoop
+04CA-72 75 6E 43 
+     6D 64 48 61 
+     6E 64 6C 65 
+     72 20 69 73 
+     20 68 65 72 
+     65 2E 2E 2E 
+     0D 0A 00        523        .txt:           .db     "runCmdHandler is here...",CR,LF,0
+04E5-                524
+04E5-                525
+04E5-                526
+04E5-                527        ;-----------------------------------------------------------------
+04E5-                528        ; "reset" command - warm reset of dino-85 system
+04E5-                529        ; syntax:
+04E5-                530        ;       reset
+04E5-                531        ;
+04E5-                532        resetCmdHandler:
+04E5-01 EE 04        533 (  10)                 lxi     B,.txt
+04E8-CD E2 07        534 (  18)                 call    uartPutStr
+04EB-C3 73 00        535 (   7)                 jmp     dinoMonLoop
+04EE-72 65 73 65 
+     74 43 6D 64 
+     48 61 6E 64 
+     6C 65 72 20 
+     69 73 20 68 
+     65 72 65 2E 
+     2E 2E 0D 0A 
+     00              536        .txt:           .db     "resetCmdHandler is here...",CR,LF,0
+050B-                537
+050B-                538
+050B-                539
+050B-                540        ;-----------------------------------------------------------------
+050B-                541        ; "in" command - reads byte from input port
+050B-                542        ; syntax:
+050B-                543        ;       in ii
+050B-                544        ; where:
+050B-                545        ;       ii - input port address
+050B-                546        ;
+050B-                547                        .in incmd.inc
+050B-            I     1        inputFromPortCmdHandler:
+050B-            I     2
+050B-            I     3                        ; clear temp text buff
+050B-01 01 FE    I     4 (  10)                 lxi     B,textBuffer
+050E-3E 00       I     5 (   7)                 mvi     A,0
+0510-2E 20       I     6 (   7)                 mvi     L,32
+0512-CD 3E 07    I     7 (  18)                 call    memFill
+0515-            I     8
+0515-            I     9                        ; skip spaces after command name,
+0515-            I    10                        ; stop at first parameter
+0515-01 83 FD    I    11 (  10)                 lxi     B,commandBuffer+2
+0518-CD F3 06    I    12 (  18)                 call    skipSpaces
+051B-            I    13
+051B-            I    14                        ; convert two next chars to bin (one byte)
+051B-CD F0 05    I    15 (  18)                 call    strHex2Byte
+051E-D2 54 05    I    16 (7/10)                 jnc     .inputError
+0521-            I    17                        ; result in HL, get only L
+0521-7D          I    18 (   4)                 mov     A,L
+0522-01 01 FE    I    19 (  10)                 lxi     B,textBuffer
+0525-CD 6E 06    I    20 (  18)                 call    byte2HexStr
+0528-            I    21
+0528-CD F8 07    I    22 (  18)                 call    sendOk
+052B-            I    23
+052B-            I    24                        ; send first part of response
+052B-01 5A 05    I    25 (  10)                 lxi     B,.txt1
+052E-CD E2 07    I    26 (  18)                 call    uartPutStr
+0531-            I    27
+0531-            I    28                        ; then send converted parameter as echo
+0531-01 01 FE    I    29 (  10)                 lxi     B,textBuffer
+0534-CD E2 07    I    30 (  18)                 call    uartPutStr
+0537-            I    31
+0537-            I    32                        ; send the second part of response
+0537-01 5E 05    I    33 (  10)                 lxi     B,.txt2
+053A-CD E2 07    I    34 (  18)                 call    uartPutStr
+053D-            I    35
+053D-            I    36                        ; do real IN operation here
+053D-            I    37                        ; ACC - return value, TO BE IMPLEMENTED
+053D-            I    38
+053D-            I    39                        ; convert result
+053D-3E FE       I    40 (   7)                 mvi     A,0feh                  ; FIX IT!
+053F-01 01 FE    I    41 (  10)                 lxi     B,textBuffer
+0542-CD 6E 06    I    42 (  18)                 call    byte2HexStr
+0545-            I    43
+0545-            I    44                        ; and send it back
+0545-01 01 FE    I    45 (  10)                 lxi     B,textBuffer
+0548-CD E2 07    I    46 (  18)                 call    uartPutStr
+054B-            I    47
+054B-            I    48                        ; finish with CRLF
+054B-01 61 05    I    49 (  10)                 lxi     B,.txt3
+054E-CD E2 07    I    50 (  18)                 call    uartPutStr
+0551-            I    51
+0551-            I    52                        ; back to interpreter loop
+0551-C3 73 00    I    53 (   7)                 jmp     dinoMonLoop
+0554-            I    54
+0554-            I    55        .inputError:
+0554-CD 22 08    I    56 (  18)                 call    sendInvalidInputParamMsg
+0557-C3 73 00    I    57 (   7)                 jmp     dinoMonLoop
+055A-            I    58
+055A-49 4E 28 00 I    59        .txt1:          .db     "IN(",0
+055E-29 3D 00    I    60        .txt2:          .db     ")=",0
+0561-0D 0A 00    I    61        .txt3:          .db     CR,LF,0
+0564-                548
+0564-                549
+0564-                550
+0564-                551        ;-----------------------------------------------------------------
+0564-                552        ; "out" command - writes byte to output port
+0564-                553        ; syntax:
+0564-                554        ;       out oo dd
+0564-                555        ; where:
+0564-                556        ;       oo - output port address
+0564-                557        ;       dd - data to write
+0564-                558        ; OK, OUT(aa,bb)
+0564-                559        outputToPortCmdHandler:
+0564-                560
+0564-                561                        ; clear temp text buff
+0564-01 01 FE        562 (  10)                 lxi     B,textBuffer
+0567-3E 00           563 (   7)                 mvi     A,0
+0569-2E 20           564 (   7)                 mvi     L,32
+056B-CD 3E 07        565 (  18)                 call    memFill
+056E-                566
+056E-                567                        ; skip spaces after command name,
+056E-                568                        ; stop at first parameter
+056E-01 84 FD        569 (  10)                 lxi     B,commandBuffer+3
+0571-CD F3 06        570 (  18)                 call    skipSpaces
+0574-                571
+0574-                572                        ; 1-st par, i/o address
+0574-                573                        ; convert two next chars to bin (one byte)
+0574-CD F0 05        574 (  18)                 call    strHex2Byte
+0577-D2 B4 05        575 (7/10)                 jnc     .inputError
+057A-                576                        ; result in HL, get only L
+057A-55              577 (   4)                 mov     D,L
+057B-03              578 (   6)                 inx     B
+057C-03              579 (   6)                 inx     B
+057D-03              580 (   6)                 inx     B
+057E-CD F3 06        581 (  18)                 call    skipSpaces
+0581-                582
+0581-                583                        ; 2-nd param
+0581-CD F0 05        584 (  18)                 call    strHex2Byte
+0584-D2 B4 05        585 (7/10)                 jnc     .inputError
+0587-                586                        ; result in HL, get only L
+0587-5D              587 (   4)                 mov     E,L
+0588-                588
+0588-                589                        ; real OUT operation here
+0588-                590
+0588-                591                        ; send feedback
+0588-                592
+0588-CD F8 07        593 (  18)                 call    sendOk
+058B-                594
+058B-01 BA 05        595 (  10)                 lxi     B,.txt1
+058E-CD E2 07        596 (  18)                 call    uartPutStr
+0591-                597
+0591-7A              598 (   4)                 mov     A,D
+0592-01 01 FE        599 (  10)                 lxi     B,textBuffer
+0595-CD 6E 06        600 (  18)                 call    byte2HexStr
+0598-CD E2 07        601 (  18)                 call    uartPutStr
+059B-                602
+059B-01 BF 05        603 (  10)                 lxi     B,.txt2
+059E-CD E2 07        604 (  18)                 call    uartPutStr
+05A1-                605
+05A1-7B              606 (   4)                 mov     A,E
+05A2-01 01 FE        607 (  10)                 lxi     B,textBuffer
+05A5-CD 6E 06        608 (  18)                 call    byte2HexStr
+05A8-CD E2 07        609 (  18)                 call    uartPutStr
+05AB-                610
+05AB-01 C1 05        611 (  10)                 lxi     B,.txt3
+05AE-CD E2 07        612 (  18)                 call    uartPutStr
+05B1-                613
+05B1-                614                        ; back to interpreter loop
+05B1-C3 73 00        615 (   7)                 jmp     dinoMonLoop
+05B4-                616
+05B4-                617        .inputError:
+05B4-CD 22 08        618 (  18)                 call    sendInvalidInputParamMsg
+05B7-C3 73 00        619 (   7)                 jmp     dinoMonLoop
+05BA-                620
+05BA-4F 55 54 28 
+     00              621        .txt1:          .db     "OUT(",0
+05BF-2C 00           622        .txt2:          .db     ",",0
+05C1-29 0D 0A 00     623        .txt3:          .db     ")",CR,LF,0
+05C5-                624
+05C5-                625
+05C5-                626
+05C5-                627        ;-----------------------------------------------------------------
+05C5-                628        ; "em" command - edits selected memory location
+05C5-                629        ; syntax:
+05C5-                630        ;       em nnnn dd
+05C5-                631        ; where:
+05C5-                632        ;       nnnn - address of cell to edit
+05C5-                633        ;       dd - data to write
+05C5-                634        ;
+05C5-                635        editMemoryCmdHandler:
+05C5-01 CE 05        636 (  10)                 lxi     B,.txt
+05C8-CD E2 07        637 (  18)                 call    uartPutStr
+05CB-C3 73 00        638 (   7)                 jmp     dinoMonLoop
+05CE-65 64 69 74 
+     4D 65 6D 6F 
+     72 79 43 6D 
+     64 48 61 6E 
+     64 6C 65 72 
+     20 69 73 20 
+     68 65 72 65 
+     2E 2E 2E 0D 
+     0A 00           639        .txt:           .db     "editMemoryCmdHandler is here...",CR,LF,0
+05F0-                640
+05F0-                641
+05F0-                642
+05F0-                643        ;------------------------ end of handlers impl. --------------------
+05F0-                644
+05F0-                645
+05F0-                646                                .in     convert.inc
+05F0-            I     1        ;///////////////////////////////////////////////////////
+05F0-            I     2        ;//
+05F0-            I     3        ;// convert.inc - procedury konwertujce
+05F0-            I     4        ;//
+05F0-            I     5        ;///////////////////////////////////////////////////////
+05F0-            I     6
+05F0-            I     7
+05F0-            I     8        ;-------------------------------------------------------
+05F0-            I     9        ; strHex2Byte
+05F0-            I    10        ;
+05F0-            I    11        ; Konwertuje string hex (dwa znaki ascii) na bajt.
+05F0-            I    12        ;
+05F0-            I    13        ; we:
+05F0-            I    14        ;       BC - adres napisu do analizy
+05F0-            I    15        ;
+05F0-            I    16        ; wy:
+05F0-            I    17        ;       CY = 1 - konwersja OK
+05F0-            I    18        ;       HL - wynik konwersji, H (msb) - zero, L(lsb) - dana
+05F0-            I    19        ;
+05F0-            I    20        ;       CY = 0 - bd konwersji
+05F0-            I    21        ;       HL - zawarto bez znaczenia
+05F0-            I    22        ;
+05F0-            I    23        strHex2Byte:
+05F0-F5          I    24 (  12)                 push    PSW
+05F1-C5          I    25 (  12)                 push    B
+05F2-            I    26
+05F2-0A          I    27 (   7)                 ldax    B
+05F3-CD 4B 06    I    28 (  18)                 call    char2HexDigit
+05F6-D2 0E 06    I    29 (7/10)                 jnc     .convErr
+05F9-07          I    30 (   4)                 rlc     ; A << 4
+05FA-07          I    31 (   4)                 rlc
+05FB-07          I    32 (   4)                 rlc
+05FC-07          I    33 (   4)                 rlc
+05FD-6F          I    34 (   4)                 mov     L,A
+05FE-03          I    35 (   6)                 inx     B       ; nastepna cyfra
+05FF-0A          I    36 (   7)                 ldax    B
+0600-CD 4B 06    I    37 (  18)                 call    char2HexDigit
+0603-D2 0E 06    I    38 (7/10)                 jnc     .convErr
+0606-B5          I    39 (   4)                 ora     L       ; A = A | L
+0607-6F          I    40 (   4)                 mov     L,A
+0608-26 00       I    41 (   7)                 mvi     H,0
+060A-C1          I    42 (  10)                 pop     B
+060B-F1          I    43 (  10)                 pop     PSW
+060C-            I    44                        >SET_CY_FLAG
+060C-37          IM    1 (   4)                         stc     ; CY = 1
+060D-C9          I    45 (  10)                 ret
+060E-            I    46        .convErr:
+060E-C1          I    47 (  10)                 pop     B
+060F-F1          I    48 (  10)                 pop     PSW
+0610-            I    49                        >CLEAR_CY_FLAG
+0610-37          IM    1 (   4)                         stc     ; CY = 1
+0611-3F          IM    2 (   4)                         cmc     ; CY = /CY = 0
+0612-C9          I    50 (  10)                 ret
+0613-            I    51
+0613-            I    52
+0613-            I    53        ;-------------------------------------------------------
+0613-            I    54        ; strHex2Word
+0613-            I    55        ;
+0613-            I    56        ; Konwertuje string hex (cztery znaki ascii) na sowo.
+0613-            I    57        ;
+0613-            I    58        ; we:
+0613-            I    59        ;       BC - adres napisu do analizy
+0613-            I    60        ;
+0613-            I    61        ; wy:
+0613-            I    62        ;       CY = 1 - konwersja OK
+0613-            I    63        ;       HL - wynik konwersji: H (msb), L(lsb)
+0613-            I    64        ;
+0613-            I    65        ;       CY = 0 - bd konwersji
+0613-            I    66        ;       HL - zawarto bez znaczenia
+0613-            I    67        ;
+0613-            I    68        strHex2Word:
+0613-F5          I    69 (  12)                 push    PSW
+0614-C5          I    70 (  12)                 push    B
+0615-            I    71
+0615-            I    72                        ; starszy bajt +0, +1
+0615-0A          I    73 (   7)                 ldax    B
+0616-CD 4B 06    I    74 (  18)                 call    char2HexDigit
+0619-D2 46 06    I    75 (7/10)                 jnc     .convErr
+061C-07          I    76 (   4)                 rlc     ; A << 4
+061D-07          I    77 (   4)                 rlc
+061E-07          I    78 (   4)                 rlc
+061F-07          I    79 (   4)                 rlc
+0620-67          I    80 (   4)                 mov     H,A
+0621-03          I    81 (   6)                 inx     B       ; nastepna cyfra
+0622-0A          I    82 (   7)                 ldax    B
+0623-CD 4B 06    I    83 (  18)                 call    char2HexDigit
+0626-D2 46 06    I    84 (7/10)                 jnc     .convErr
+0629-B4          I    85 (   4)                 ora     H       ; A = A | H
+062A-67          I    86 (   4)                 mov     H,A
+062B-            I    87
+062B-            I    88                        ; modszy bajt
+062B-03          I    89 (   6)                 inx     B
+062C-0A          I    90 (   7)                 ldax    B
+062D-CD 4B 06    I    91 (  18)                 call    char2HexDigit
+0630-D2 46 06    I    92 (7/10)                 jnc     .convErr
+0633-07          I    93 (   4)                 rlc     ; A << 4
+0634-07          I    94 (   4)                 rlc
+0635-07          I    95 (   4)                 rlc
+0636-07          I    96 (   4)                 rlc
+0637-6F          I    97 (   4)                 mov     L,A
+0638-03          I    98 (   6)                 inx     B       ; nastepna cyfra
+0639-0A          I    99 (   7)                 ldax    B
+063A-CD 4B 06    I   100 (  18)                 call    char2HexDigit
+063D-D2 46 06    I   101 (7/10)                 jnc     .convErr
+0640-B5          I   102 (   4)                 ora     L       ; A = A | L
+0641-6F          I   103 (   4)                 mov     L,A
+0642-            I   104
+0642-C1          I   105 (  10)                 pop     B
+0643-F1          I   106 (  10)                 pop     PSW
+0644-            I   107                        >SET_CY_FLAG
+0644-37          IM    1 (   4)                         stc     ; CY = 1
+0645-C9          I   108 (  10)                 ret
+0646-            I   109        .convErr:
+0646-C1          I   110 (  10)                 pop     B
+0647-F1          I   111 (  10)                 pop     PSW
+0648-            I   112                        >CLEAR_CY_FLAG
+0648-37          IM    1 (   4)                         stc     ; CY = 1
+0649-3F          IM    2 (   4)                         cmc     ; CY = /CY = 0
+064A-C9          I   113 (  10)                 ret
+064B-            I   114
+064B-            I   115
+064B-            I   116        ;-------------------------------------------------------
+064B-            I   117        ; char2HexDigit
+064B-            I   118        ;
+064B-            I   119        ; Konwertuje kod ascii bdcy cyfra hex (0..9,a..f,A..F)
+064B-            I   120        ; na jego warto binarn.
+064B-            I   121        ;
+064B-            I   122        ; we:
+064B-            I   123        ;       ACC - kod znaku ascii
+064B-            I   124        ;
+064B-            I   125        ; wy:
+064B-            I   126        ;       CY = 1 - konwersja OK
+064B-            I   127        ;       ACC - warto liczbowa
+064B-            I   128        ;
+064B-            I   129        ;       CY = 0 - bd konwersji
+064B-            I   130        ;       ACC - zawarto bez znaczenia
+064B-            I   131        ;
+064B-            I   132        char2HexDigit:
+064B-C5          I   133 (  12)                 push    B
+064C-D5          I   134 (  12)                 push    D
+064D-E5          I   135 (  12)                 push    H
+064E-            I   136
+064E-67          I   137 (   4)                 mov     H,A
+064F-01 C7 06    I   138 (  10)                 lxi     B,validHexChars ; adres tabeli z dopuszcz. znakami
+0652-            I   139                        >LENGTH L,validHexChars
+0652-2E 16       IM    1 (   7)                 mvi     L,validHexCharsEnd-validHexChars
+0654-11 DD 06    I   140 (  10)                 lxi     D,validHexVals  ; adres tabeli z wartociami
+0657-            I   141        .continue:
+0657-0A          I   142 (   7)                 ldax    B               ; a = *validHexChars
+0658-BC          I   143 (   4)                 cmp     H               ; a == inputChar ?
+0659-CA 68 06    I   144 (7/10)                 jz      .codeFound      ; yyeeeea!
+065C-03          I   145 (   6)                 inx     B               ; validHexChars++
+065D-13          I   146 (   6)                 inx     D               ; validHexVals++
+065E-2D          I   147 (   4)                 dcr     L               ; L--
+065F-C2 57 06    I   148 (7/10)                 jnz     .continue
+0662-            I   149                        ; znaku nie ma w tabeli
+0662-E1          I   150 (  10)                 pop     H
+0663-D1          I   151 (  10)                 pop     D
+0664-C1          I   152 (  10)                 pop     B
+0665-            I   153                        >CLEAR_CY_FLAG
+0665-37          IM    1 (   4)                         stc     ; CY = 1
+0666-3F          IM    2 (   4)                         cmc     ; CY = /CY = 0
+0667-C9          I   154 (  10)                 ret
+0668-            I   155        .codeFound:
+0668-1A          I   156 (   7)                 ldax    D               ; a = *validHexValues - pobierz warto
+0669-E1          I   157 (  10)                 pop     H
+066A-D1          I   158 (  10)                 pop     D
+066B-C1          I   159 (  10)                 pop     B
+066C-            I   160                        >SET_CY_FLAG
+066C-37          IM    1 (   4)                         stc     ; CY = 1
+066D-C9          I   161 (  10)                 ret
+066E-            I   162
+066E-            I   163
+066E-            I   164        ;-------------------------------------------------------
+066E-            I   165        ; byte2HexStr
+066E-            I   166        ;
+066E-            I   167        ; Konwertuje bajt podany w ACC na napis hex, dane skaduje
+066E-            I   168        ; pod adres wskazany rejestrem BC, koczc napis
+066E-            I   169        ; wartoci 0 (buduje z-string)
+066E-            I   170        ;
+066E-            I   171        ; we:
+066E-            I   172        ;       ACC - bajt do konwersji na napis hex
+066E-            I   173        ;       BC - adres bufora docelowego (3 znaki)
+066E-            I   174        ;
+066E-            I   175        ; wy:   -
+066E-            I   176        ;
+066E-            I   177        byte2HexStr:
+066E-F5          I   178 (  12)                 push    PSW
+066F-C5          I   179 (  12)                 push    B
+0670-            I   180
+0670-F5          I   181 (  12)                 push    PSW
+0671-E6 F0       I   182 (   7)                 ani     0F0h
+0673-0F          I   183 (   4)                 rrc                     ; A >> 4
+0674-0F          I   184 (   4)                 rrc
+0675-0F          I   185 (   4)                 rrc
+0676-0F          I   186 (   4)                 rrc
+0677-CD BA 06    I   187 (  18)                 call    bin2char
+067A-02          I   188 (   7)                 stax    B
+067B-03          I   189 (   6)                 inx     B
+067C-F1          I   190 (  10)                 pop     PSW
+067D-E6 0F       I   191 (   7)                 ani     0Fh
+067F-CD BA 06    I   192 (  18)                 call    bin2char
+0682-02          I   193 (   7)                 stax    B
+0683-            I   194                        ; zakocz zerem
+0683-03          I   195 (   6)                 inx     B
+0684-3E 00       I   196 (   7)                 mvi     A,0
+0686-02          I   197 (   7)                 stax    B
+0687-            I   198
+0687-C1          I   199 (  10)                 pop     B
+0688-F1          I   200 (  10)                 pop     PSW
+0689-C9          I   201 (  10)                 ret
+068A-            I   202
+068A-            I   203
+068A-            I   204
+068A-            I   205        ;-------------------------------------------------------
+068A-            I   206        ; word2HexStr
+068A-            I   207        ;
+068A-            I   208        ; Konwertuje sowo podane w HL na napis hex, dane skaduje
+068A-            I   209        ; pod adres wskazany rejestrem BC, koczc napis
+068A-            I   210        ; wartoci 0 (buduje z-string)
+068A-            I   211        ;
+068A-            I   212        ; we:
+068A-            I   213        ;       HL - sowo do konwersji na napis hex
+068A-            I   214        ;       BC - adres bufora docelowego (5 znakw)
+068A-            I   215        ;
+068A-            I   216        ; wy:
+068A-            I   217        ;       -
+068A-            I   218        ;
+068A-            I   219        word2HexStr:
+068A-F5          I   220 (  12)                 push    PSW
+068B-C5          I   221 (  12)                 push    B
+068C-            I   222
+068C-            I   223                        ; rejest H (msb)
+068C-7C          I   224 (   4)                 mov     A,H             ;
+068D-E6 F0       I   225 (   7)                 ani     0F0h            ; starszy nibble MSB
+068F-0F          I   226 (   4)                 rrc                     ; A >> 4
+0690-0F          I   227 (   4)                 rrc
+0691-0F          I   228 (   4)                 rrc
+0692-0F          I   229 (   4)                 rrc
+0693-CD BA 06    I   230 (  18)                 call    bin2char
+0696-02          I   231 (   7)                 stax    B
+0697-            I   232
+0697-03          I   233 (   6)                 inx     B               ; ptr++
+0698-            I   234
+0698-7C          I   235 (   4)                 mov     A,H
+0699-E6 0F       I   236 (   7)                 ani     0Fh             ; modszy nibble LSB
+069B-CD BA 06    I   237 (  18)                 call    bin2char
+069E-02          I   238 (   7)                 stax    B
+069F-            I   239
+069F-03          I   240 (   6)                 inx     B               ; ptr++
+06A0-            I   241
+06A0-            I   242                        ; rejest L (lsb)
+06A0-7D          I   243 (   4)                 mov     A,L
+06A1-E6 F0       I   244 (   7)                 ani     0F0h            ; starszy nibble LSB
+06A3-0F          I   245 (   4)                 rrc                     ; A >> 4
+06A4-0F          I   246 (   4)                 rrc
+06A5-0F          I   247 (   4)                 rrc
+06A6-0F          I   248 (   4)                 rrc
+06A7-CD BA 06    I   249 (  18)                 call    bin2char
+06AA-02          I   250 (   7)                 stax    B
+06AB-            I   251
+06AB-03          I   252 (   6)                 inx     B               ; ptr++
+06AC-            I   253
+06AC-7D          I   254 (   4)                 mov     A,L
+06AD-E6 0F       I   255 (   7)                 ani     0Fh             ; modszy nibble LSB
+06AF-CD BA 06    I   256 (  18)                 call    bin2char
+06B2-02          I   257 (   7)                 stax    B
+06B3-            I   258
+06B3-            I   259                        ; zakocz zerem
+06B3-03          I   260 (   6)                 inx     B
+06B4-3E 00       I   261 (   7)                 mvi     A,0
+06B6-02          I   262 (   7)                 stax    B
+06B7-            I   263
+06B7-C1          I   264 (  10)                 pop     B
+06B8-F1          I   265 (  10)                 pop     PSW
+06B9-C9          I   266 (  10)                 ret
+06BA-            I   267
+06BA-            I   268
+06BA-            I   269        ;-------------------------------------------------------
+06BA-            I   270        ; bin2char
+06BA-            I   271        ;
+06BA-            I   272        ; Zwraca kod ascii cyfry binarnej (0..F) podanej w ACC
+06BA-            I   273        ;
+06BA-            I   274        ; we:
+06BA-            I   275        ;       ACC - cyfra binarna
+06BA-            I   276        ;
+06BA-            I   277        ; wy:
+06BA-            I   278        ;       ACC - jej kod ascii z lookup table
+06BA-            I   279        ;
+06BA-            I   280        bin2char:
+06BA-E5          I   281 (  12)                 push    H
+06BB-C5          I   282 (  12)                 push    B
+06BC-            I   283
+06BC-21 C7 06    I   284 (  10)                 lxi     H,validHexChars
+06BF-06 00       I   285 (   7)                 mvi     B,0
+06C1-4F          I   286 (   4)                 mov     C,A
+06C2-09          I   287 (  10)                 dad     B
+06C3-7E          I   288 (   7)                 mov     A,M
+06C4-C1          I   289 (  10)                 pop     B
+06C5-E1          I   290 (  10)                 pop     H
+06C6-C9          I   291 (  10)                 ret
+06C7-            I   292
+06C7-            I   293        ;-------------------------------------------------------------
+06C7-            I   294        ; tabele pomocnicze do funkcji konwertujcych
+06C7-            I   295        ; dopuszczalne kody ascii cyfr szesnastkowych
+06C7-30 31 32 33 
+     34 35 36 37 
+     38 39       I   296        validHexChars:  .db     '0','1','2','3','4','5','6','7','8','9'
+06D1-41 42 43 44 
+     45 46       I   297                        .db     'A','B','C','D','E','F'
+06D7-61 62 63 64 
+     65 66       I   298                        .db     'a','b','c','d','e','f'
+06DD-            I   299        validHexCharsEnd:
+06DD-            I   300        ; wartoci binarne dla kodw z tabeli powyej
+06DD-00 01 02 03 
+     04 05 06 07 
+     08 09       I   301        validHexVals:   .db     00h,01h,02h,03h,04h,05h,06h,07h,08h,09h
+06E7-0A 0B 0C 0D 
+     0E 0F       I   302                        .db     0Ah,0Bh,0Ch,0Dh,0Eh,0Fh
+06ED-0A 0B 0C 0D 
+     0E 0F       I   303                        .db     0Ah,0Bh,0Ch,0Dh,0Eh,0Fh
+06F3-            I   304
+06F3-            I   305        ; eof convert.inc
+06F3-                647                                .in     strutil.inc
+06F3-            I     1        ;///////////////////////////////////////////////////////
+06F3-            I     2        ;//
+06F3-            I     3        ;// strutil.inc - procedury operujce na napisach
+06F3-            I     4        ;//
+06F3-            I     5        ;///////////////////////////////////////////////////////
+06F3-            I     6
+06F3-            I     7
+06F3-            I     8        ;-------------------------------------------------------
+06F3-            I     9        ; skipSpaces
+06F3-            I    10        ;
+06F3-            I    11        ; Skanuje napis poczwszy od adresu podanego w BC
+06F3-            I    12        ; pomijajc znaki spacji. Analiza koczy si z chwil
+06F3-            I    13        ; napotkania ascii nie bdcego spacj i jego adres
+06F3-            I    14        ; jest zwracany w BC
+06F3-            I    15        ;
+06F3-            I    16        ; we:
+06F3-            I    17        ;       BC - adres napisu do analizy
+06F3-            I    18        ;
+06F3-            I    19        ; wy:
+06F3-            I    20        ;       BC - zmodyfikowana warto
+06F3-            I    21        ;
+06F3-            I    22        skipSpaces:
+06F3-F5          I    23 (  12)                 push    PSW
+06F4-            I    24        .continue:
+06F4-0A          I    25 (   7)                 ldax    B
+06F5-FE 20       I    26 (   7)                 cpi     ' '
+06F7-C2 FE 06    I    27 (7/10)                 jnz     .enough
+06FA-03          I    28 (   6)                 inx     B
+06FB-C3 F4 06    I    29 (   7)                 jmp     .continue
+06FE-            I    30        .enough:
+06FE-F1          I    31 (  10)                 pop     PSW
+06FF-C9          I    32 (  10)                 ret
+0700-            I    33
+0700-            I    34
+0700-            I    35        ;-------------------------------------------------------
+0700-            I    36        ; strAppend
+0700-            I    37        ;
+0700-            I    38        ; Dokonuje kontaktencji napisw o adresach podanych odpowiednio
+0700-            I    39        ; w rejestrach BC (napis docelowy/rozszerzany) i DE (napis, ktry
+0700-            I    40        ; trzeba doda. Oba napisy musz koczy si bajtem 0 (z-string)
+0700-            I    41        ;
+0700-            I    42        ; we:
+0700-            I    43        ;       BC - adres napisu do rozszerzenia/modyfikacji
+0700-            I    44        ;       DE - adres napisu, ktry naley doda na kocu tego z BC
+0700-            I    45        ;
+0700-            I    46        ; wy:
+0700-            I    47        ;       -
+0700-            I    48        ;
+0700-            I    49        strAppend:
+0700-C5          I    50 (  12)                 push    B
+0701-D5          I    51 (  12)                 push    D
+0702-F5          I    52 (  12)                 push    PSW
+0703-            I    53
+0703-            I    54                        ; przewi na koniec napisu docelowego
+0703-            I    55        .seekEnd:
+0703-0A          I    56 (   7)                 ldax    B                       ; A := *ptr
+0704-FE 00       I    57 (   7)                 cpi     0                       ; == 0?
+0706-CA 0D 07    I    58 (7/10)                 jz      .hasLastOne
+0709-03          I    59 (   6)                 inx     B                       ; ptr++
+070A-C3 03 07    I    60 (   7)                 jmp     .seekEnd                        ;
+070D-            I    61        .hasLastOne:                                    ; *ptr jest 0x00
+070D-            I    62        .appendNext:
+070D-1A          I    63 (   7)                 ldax    D                       ; A := *src
+070E-FE 00       I    64 (   7)                 cpi     0                       ; == 0 ?
+0710-CA 19 07    I    65 (7/10)                 jz      .done
+0713-02          I    66 (   7)                 stax    B                       ; *dest := A
+0714-03          I    67 (   6)                 inx     B                       ; dest++
+0715-13          I    68 (   6)                 inx     D                       ; src++
+0716-C3 0D 07    I    69 (   7)                 jmp     .appendNext
+0719-            I    70        .done:
+0719-3E 00       I    71 (   7)                 mvi     A,0
+071B-02          I    72 (   7)                 stax    B                       ; zakocz zerem
+071C-            I    73
+071C-F1          I    74 (  10)                 pop     PSW
+071D-D1          I    75 (  10)                 pop     D
+071E-C1          I    76 (  10)                 pop     B
+071F-C9          I    77 (  10)                 ret
+0720-            I    78
+0720-            I    79
+0720-            I    80        ;-------------------------------------------------------
+0720-            I    81        ; strEquals
+0720-            I    82        ;
+0720-            I    83        ; Porwnuje dwa napisy o adresach podanych odpowiednio
+0720-            I    84        ; w rejestrach BC i DE, porwnywane jest tylko tyle znakw
+0720-            I    85        ; ile nakazano wartoci rejestru L
+0720-            I    86        ;
+0720-            I    87        ; we:
+0720-            I    88        ;       BC - adres pierwszego napisu (wzorca)
+0720-            I    89        ;       DE - adres drugiego napisu (do sprawdzenia)
+0720-            I    90        ;       L - ilo bajtw (znakw) do sprawdzenia
+0720-            I    91        ; wy:
+0720-            I    92        ;       CY = 1 - napisy pasuj do siebie na L znakach
+0720-            I    93        ;       CY = 0 - napisy rni si w obrbie L znakw
+0720-            I    94        ;
+0720-            I    95        strEquals:
+0720-F5          I    96 (  12)                 push    PSW
+0721-C5          I    97 (  12)                 push    B
+0722-D5          I    98 (  12)                 push    D
+0723-E5          I    99 (  12)                 push    H
+0724-            I   100        .continue
+0724-0A          I   101 (   7)                 ldax    B       ; A = *source
+0725-67          I   102 (   4)                 mov     H,A     ; zachowaj w H na moment
+0726-1A          I   103 (   7)                 ldax    D       ; A = *template
+0727-BC          I   104 (   4)                 cmp     H       ; A == H ? equ - Z, diff - NZ
+0728-C2 37 07    I   105 (7/10)                 jnz     .different
+072B-03          I   106 (   6)                 inx     B       ; source++
+072C-13          I   107 (   6)                 inx     D       ; template++
+072D-2D          I   108 (   4)                 dcr     L       ; counter--
+072E-C2 24 07    I   109 (7/10)                 jnz     .continue
+0731-            I   110
+0731-E1          I   111 (  10)                 pop     H
+0732-D1          I   112 (  10)                 pop     D
+0733-C1          I   113 (  10)                 pop     B
+0734-F1          I   114 (  10)                 pop     PSW
+0735-            I   115                        >SET_CY_FLAG
+0735-37          IM    1 (   4)                         stc     ; CY = 1
+0736-C9          I   116 (  10)                 ret
+0737-            I   117        .different:
+0737-E1          I   118 (  10)                 pop     H
+0738-D1          I   119 (  10)                 pop     D
+0739-C1          I   120 (  10)                 pop     B
+073A-F1          I   121 (  10)                 pop     PSW
+073B-            I   122                        >CLEAR_CY_FLAG
+073B-37          IM    1 (   4)                         stc     ; CY = 1
+073C-3F          IM    2 (   4)                         cmc     ; CY = /CY = 0
+073D-C9          I   123 (  10)                 ret
+073E-            I   124
+073E-            I   125        ; eof strutils.inc
+073E-                648                                .in     memutil.inc
+073E-            I     1        ;///////////////////////////////////////////////////////
+073E-            I     2        ;//
+073E-            I     3        ;// memutil.inc - procedury operaujce na blokach pamici
+073E-            I     4        ;//
+073E-            I     5        ;///////////////////////////////////////////////////////
+073E-            I     6
+073E-            I     7
+073E-            I     8        ;-------------------------------------------------------
+073E-            I     9        ; memFill
+073E-            I    10        ;
+073E-            I    11        ; Wypenia blok pamici o rozmiarze L bajtw wartoci
+073E-            I    12        ; podan w ACC, adres bloku podaje si w BC
+073E-            I    13        ;
+073E-            I    14        ; we:
+073E-            I    15        ;       BC - adres bloku pamici
+073E-            I    16        ;       ACC - warto wypeniajca
+073E-            I    17        ;       L - ilo bajtw
+073E-            I    18        ;
+073E-            I    19        ; wy:
+073E-            I    20        ;       -
+073E-            I    21        ;
+073E-            I    22        memFill:
+073E-F5          I    23 (  12)                 push    PSW
+073F-E5          I    24 (  12)                 push    H
+0740-C5          I    25 (  12)                 push    B
+0741-            I    26        .fill:
+0741-02          I    27 (   7)                 stax    B       ; *ptr = A
+0742-03          I    28 (   6)                 inx     B       ; ptr++
+0743-2D          I    29 (   4)                 dcr     L       ; cntr--
+0744-C2 41 07    I    30 (7/10)                 jnz     .fill
+0747-C1          I    31 (  10)                 pop     B
+0748-E1          I    32 (  10)                 pop     H
+0749-F1          I    33 (  10)                 pop     PSW
+074A-C9          I    34 (  10)                 ret
+074B-            I    35
+074B-            I    36
+074B-            I    37
+074B-            I    38        ;-------------------------------------------------------
+074B-            I    39        ; memCopy
+074B-            I    40        ;
+074B-            I    41        ; Kopiuje L bajtw z bloku pamici o adresie podanym w BC
+074B-            I    42        ; pod docelowy adres wskazany w DE.
+074B-            I    43        ;
+074B-            I    44        ; we:
+074B-            I    45        ;       BC - adres rdowego bloku pamici
+074B-            I    46        ;       DE - adres docelowego bloku pamici
+074B-            I    47        ;       L - ilo bajtw do skopiowania
+074B-            I    48        ;
+074B-            I    49        ; wy:
+074B-            I    50        ;       -
+074B-            I    51        ;
+074B-            I    52        memCopy:
+074B-F5          I    53 (  12)                 push    PSW
+074C-E5          I    54 (  12)                 push    H
+074D-C5          I    55 (  12)                 push    B
+074E-D5          I    56 (  12)                 push    D
+074F-            I    57        .copy:
+074F-0A          I    58 (   7)                 ldax    B       ; A = *src
+0750-12          I    59 (   7)                 stax    D       ; *dest = A
+0751-03          I    60 (   6)                 inx     B       ; src++
+0752-13          I    61 (   6)                 inx     D       ; dest++
+0753-2D          I    62 (   4)                 dcr     L       ; cntr--
+0754-C2 4F 07    I    63 (7/10)                 jnz     .copy
+0757-D1          I    64 (  10)                 pop     D
+0758-C1          I    65 (  10)                 pop     B
+0759-E1          I    66 (  10)                 pop     H
+075A-F1          I    67 (  10)                 pop     PSW
+075B-C9          I    68 (  10)                 ret
+075C-            I    69
+075C-            I    70
+075C-            I    71        ; eof memutil.inc
+075C-                649
+075C-                650
+075C-                651        ;-------------------------------------------
+075C-                652
+075C-                653
+075C-                654
+075C-                655
+075C-                656
+075C-                657
+075C-                658
+075C-                659        ;--------------------------------------------------------------------
+075C-                660        ; dnUartInitImpl - raw implementation
+075C-                661        ; waits for a new character in UART receive buffer in endless loop
+075C-                662        ; in:   n/a
+075C-                663        ; out:  n/a
+075C-                664        uartInit:
+075C-F5              665 (  12)                 push    PSW
+075D-3E 00           666 (   7)                 mvi     A,0
+075F-D3 01           667 (  10)                 out     SYS_UART_CMST
+0761-00 00 00 00 
+     00 00 00 00 
+     00 00           668                        .db     0,0,0,0,0,0,0,0,0,0
+076B-D3 01           669 (  10)                 out     SYS_UART_CMST
+076D-00 00 00 00 
+     00 00 00 00 
+     00 00           670                        .db     0,0,0,0,0,0,0,0,0,0
+0777-D3 01           671 (  10)                 out     SYS_UART_CMST
+0779-00 00 00 00 
+     00 00 00 00 
+     00 00           672                        .db     0,0,0,0,0,0,0,0,0,0
+0783-D3 01           673 (  10)                 out     SYS_UART_CMST
+0785-00 00 00 00 
+     00 00 00 00 
+     00 00           674                        .db     0,0,0,0,0,0,0,0,0,0
+078F-3E 40           675 (   7)                 mvi     A,40h
+0791-D3 01           676 (  10)                 out     SYS_UART_CMST
+0793-00 00 00 00 
+     00 00 00 00 
+     00 00           677                        .db     0,0,0,0,0,0,0,0,0,0
+079D-3E 4E           678 (   7)                 mvi     A,4eh
+079F-D3 01           679 (  10)                 out     SYS_UART_CMST
+07A1-00 00 00 00 
+     00 00 00 00 
+     00 00           680                        .db     0,0,0,0,0,0,0,0,0,0
+07AB-DB 00           681 (  10)                 in      SYS_UART_DATA
+07AD-3E 07           682 (   7)                 mvi     A,07h
+07AF-D3 01           683 (  10)                 out     SYS_UART_CMST
+07B1-F1              684 (  10)                 pop     PSW
+07B2-C9              685 (  10)                 ret
+07B3-                686
+07B3-                687
+07B3-                688        ;--------------------------------------------------------------------
+07B3-                689        ; dnUartGetChrImpl - raw implementation
+07B3-                690        ; waits for a new character in UART receive buffer in endless loop
+07B3-                691        ; in:   n/a
+07B3-                692        ; out:  A - already read, new char.
+07B3-                693        uartGetChar:
+07B3-                694        .wait:
+07B3-DB 01           695 (  10)                 in      SYS_UART_CMST   ; get current status of UART
+07B5-E6 02           696 (   7)                 ani     %0000.0010      ; check RxRDY flag
+07B7-CA B3 07        697 (7/10)                 jz      .wait           ; no incoming data, then wait
+07BA-DB 00           698 (  10)                 in      SYS_UART_DATA   ; get new data
+07BC-C9              699 (  10)                 ret
+07BD-                700
+07BD-                701
+07BD-                702        ;--------------------------------------------------------------------
+07BD-                703        ; dnUartGetStrImpl - raw implementation
+07BD-                704        ; Collects incoming characters in receiving text buffer until <CR> received
+07BD-                705        ; out buffer is then ended by 0h byte (null-string)
+07BD-                706        ; in:   BC - buffer address
+07BD-                707        ;       L - length of buffer
+07BD-                708        ; out:  n/a
+07BD-                709        uartGetStr:
+07BD-F5              710 (  12)                 push    PSW
+07BE-E5              711 (  12)                 push    H
+07BF-C5              712 (  12)                 push    B
+07C0-                713        .receive:
+07C0-CD B3 07        714 (  18)                 call    uartGetChar     ; wait for char.
+07C3-FE 0D           715 (   7)                 cpi     CR                      ; do we have CR?
+07C5-CA CF 07        716 (7/10)                 jz      .crReceived             ; yea...
+07C8-02              717 (   7)                 stax    B                       ; no CR? so, *prt = A
+07C9-03              718 (   6)                 inx     B                       ; ptr++
+07CA-2D              719 (   4)                 dcr     L                       ; counter--
+07CB-C2 C0 07        720 (7/10)                 jnz     .receive                ; receive until buffer finished
+07CE-                721                        ; uups, buffer ends, still no CR
+07CE-                722                        ; so do the same action as for CR, the last valid
+07CE-                723                        ; character will be damaged...but who cares?
+07CE-                724                        ; (all completed string is probably a bullshit anyway)
+07CE-0B              725 (   6)                 dcx     B                       ; a byte back, ptr--
+07CF-                726        .crReceived:
+07CF-                727                        ; we have CR, so finalise string
+07CF-3E 00           728 (   7)                 mvi     A,0
+07D1-02              729 (   7)                 stax    B
+07D2-                730                        ; then return control to upper layer
+07D2-C1              731 (  10)                 pop     B
+07D3-E1              732 (  10)                 pop     H
+07D4-F1              733 (  10)                 pop     PSW
+07D5-C9              734 (  10)                 ret
+07D6-                735
+07D6-                736
+07D6-                737        ;--------------------------------------------------------------------
+07D6-                738        ; dnUartPutChar_impl - raw implementation
+07D6-                739        ;
+07D6-                740        ; in:   A - char (ascii code) to send via serial link
+07D6-                741        ; out:  n/a
+07D6-                742        uartPutChar:
+07D6-F5              743 (  12)                 push    PSW     ; save Acc, we need this reg. in IN instr.
+07D7-                744        .wait:
+07D7-DB 01           745 (  10)                 in      SYS_UART_CMST   ; get status of UART
+07D9-E6 01           746 (   7)                 ani     %0000.0001      ; check TxRDY flag
+07DB-CA D7 07        747 (7/10)                 jz      .wait           ; wait unitl ready (flag = 1)
+07DE-F1              748 (  10)                 pop     PSW             ; restore A, so we have byte to send
+07DF-D3 00           749 (  10)                 out     SYS_UART_DATA   ; send data
+07E1-C9              750 (  10)                 ret
+07E2-                751
+07E2-                752
+07E2-                753        ;--------------------------------------------------------------------
+07E2-                754        ; dnUartPutStrImpl - raw implementation
+07E2-                755        ; in:   BC - address of text to send (with NULL @ end)
+07E2-                756        ; out:  n/a
+07E2-                757        uartPutStr:
+07E2-F5              758 (  12)                 push    PSW
+07E3-C5              759 (  12)                 push    B
+07E4-                760        .send:
+07E4-0A              761 (   7)                 ldax    B       ; get data to send
+07E5-FE 00           762 (   7)                 cpi     0       ; end of string?
+07E7-CA F1 07        763 (7/10)                 jz      .done   ; yes, then exit
+07EA-CD D6 07        764 (  18)                 call    uartPutChar
+07ED-03              765 (   6)                 inx     B       ; show next data
+07EE-C3 E4 07        766 (   7)                 jmp     .send   ; and repeat
+07F1-                767        .done:
+07F1-C1              768 (  10)                 pop     B
+07F2-F1              769 (  10)                 pop     PSW
+07F3-C9              770 (  10)                 ret
+07F4-                771
+07F4-                772
+07F4-                773                        ;--------------------------------------------------------------------
+07F4-                774                        ; dnLcdInitImpl - raw implementation
+07F4-                775        lcdInit:
+07F4-                776                        ; TO BE IMPLEMENTED!
+07F4-C9              777 (  10)                 ret
+07F5-                778                        ;
+07F5-                779                        ;
+07F5-                780                        ;--------------------------------------------------------------------
+07F5-                781                        ; dnLcdPutCharImpl - raw implementation
+07F5-                782        lcdPutChar:
+07F5-                783                        ; TO BE IMPLEMENTED!
+07F5-C9              784 (  10)                 ret
+07F6-                785                        ;
+07F6-                786                        ;
+07F6-                787                        ;--------------------------------------------------------------------
+07F6-                788                        ; dnLcdPutCmdImpl - raw implementation
+07F6-                789        lcdPutCmd:
+07F6-                790                        ; TO BE IMPLEMENTED!
+07F6-C9              791 (  10)                 ret
+07F7-                792                        ;
+07F7-                793                        ;
+07F7-                794                        ;--------------------------------------------------------------------
+07F7-                795                        ; dnLcdPutStrImpl - raw implementation
+07F7-                796        lcdPutStr:
+07F7-                797                        ; TO BE IMPLEMENTED!
+07F7-C9              798 (  10)                 ret
+07F8-                799
+07F8-                800
+07F8-                801        ; ================ internal purpose stuff starts here ===================
+07F8-                802        ;
+07F8-                803        ; all functinos and procedures below ARE NOT EXPORTED, their addresses
+07F8-                804        ; may change during modification of dino-mon code
+07F8-                805
+07F8-                806        ; sends welcome message and similar gadgets
+07F8-                807
+07F8-                808        sendOk:
+07F8-C5              809 (  12)                 push    B
+07F9-01 2E 08        810 (  10)                 lxi     B,msgGenericOk
+07FC-CD E2 07        811 (  18)                 call    uartPutStr
+07FF-C1              812 (  10)                 pop     B
+0800-C9              813 (  10)                 ret
+0801-                814
+0801-                815        sendErr:
+0801-C5              816 (  12)                 push    B
+0802-01 41 08        817 (  10)                 lxi     B,msgGenericErr
+0805-CD E2 07        818 (  18)                 call    uartPutStr
+0808-C1              819 (  10)                 pop     B
+0809-C9              820 (  10)                 ret
+080A-                821
+080A-                822        sendWelcomeMessage:
+080A-C5              823 (  12)                 push    B
+080B-CD F8 07        824 (  18)                 call    sendOk
+080E-01 58 08        825 (  10)                 lxi     B,msgWelcome
+0811-CD E2 07        826 (  18)                 call    uartPutStr
+0814-C1              827 (  10)                 pop     B
+0815-C9              828 (  10)                 ret
+0816-                829
+0816-                830
+0816-                831        sendUnknownCommandMsg:
+0816-C5              832 (  12)                 push    B
+0817-CD 01 08        833 (  18)                 call    sendErr
+081A-01 8B 08        834 (  10)                 lxi     B,msgUnknownCmd
+081D-CD E2 07        835 (  18)                 call    uartPutStr
+0820-C1              836 (  10)                 pop     B
+0821-C9              837 (  10)                 ret
+0822-                838
+0822-                839
+0822-                840        sendInvalidInputParamMsg:
+0822-C5              841 (  12)                 push    B
+0823-CD 01 08        842 (  18)                 call    sendErr
+0826-01 A5 08        843 (  10)                 lxi     B,msgInvalidInp
+0829-CD E2 07        844 (  18)                 call    uartPutStr
+082C-C1              845 (  10)                 pop     B
+082D-C9              846 (  10)                 ret
+082E-                847
+082E-                848        ;-------------
+082E-                849        ; code of this function will be copied into upper ram
+082E-                850        ; we A- dana
+082E-                851        ;    B port addres
+082E-                852        ;
+082E-                853        ;.      in      00
+082E-                854        ;       ret
+082E-                855        ;
+082E-                856        ;       .db     IN_OPCODE,ADDR_
+082E-                857        ;
+082E-                858        ;--------------------------------------------------------------------
+082E-                859        ; ROM data here, stuff with messages, tables and similar mess
+082E-                860        ; to be used in dino-mon or copied to the upper (RAM) memory blocks
+082E-                861        ;
+082E-                862        ; system messages
+082E-                863        ; red - 31  , cyan 36 - def. , 32- green
+082E-                864        ; tasza, term vt100 colors
+082E-1B 5B 30 3B 
+     33 32 6D 4F 
+     4B 1B 5B 30 
+     3B 33 36 6D 
+     2C 20 00        865        msgGenericOk    .db     27,"[0;32mOK",27,"[0;36m, ",0
+0841-1B 5B 30 3B 
+     33 33 3B 34 
+     31 6D 45 52 
+     52 1B 5B 30 
+     3B 33 36 6D 
+     2C 20 00        866        msgGenericErr   .db     27,"[0;33;41mERR",27,"[0;36m, ",0
+0858-64 69 6E 6F 
+     2D 38 35 20 
+     28 63 29 20 
+     32 30 30 38 
+     2C 20 60 64 
+     69 6E 6F 2D 
+     6D 6F 6E 60 
+     20 62 79 20 
+     4E 61 74 61 
+     73 7A 61 2C 
+     20 72 65 76 
+     2E 31 2E 31 
+     0D 0A 00        867        msgWelcome:     .db     "dino-85 (c) 2008, `dino-mon` by Natasza, rev.1.1",CR,LF,0
+088B-75 6E 6B 6E 
+     6F 77 6E 20 
+     63 6F 6D 6D 
+     61 6E 64 20 
+     65 6E 74 65 
+     72 65 64 0D 
+     0A 00           868        msgUnknownCmd:  .db     "unknown command entered",CR,LF,0
+08A5-69 6E 76 61 
+     6C 69 64 20 
+     69 6E 70 75 
+     74 20 70 61 
+     72 61 6D 65 
+     74 65 72 28 
+     73 29 0D 0A 
+     00              869        msgInvalidInp:  .db     "invalid input parameter(s)",CR,LF,0
+08C2-                870
+08C2-                871
+08C2-                872                        >DEF_CMD_NAME   "i2r ",i2cReadCmd
+08C2-69 32 72 20  M    1        i2cReadCmdName:         .db     "i2r "
+08C6-             M    2        i2cReadCmdNameEnd:
+08C6-                873                        >DEF_CMD_NAME   "i2w ",i2cWriteCmd
+08C6-69 32 77 20  M    1        i2cWriteCmdName:         .db     "i2w "
+08CA-             M    2        i2cWriteCmdNameEnd:
+08CA-                874                        >DEF_CMD_NAME   "st ",setTimeCmd
+08CA-73 74 20     M    1        setTimeCmdName:         .db     "st "
+08CD-             M    2        setTimeCmdNameEnd:
+08CD-                875                        >DEF_CMD_NAME   "gt",getTimeCmd
+08CD-67 74        M    1        getTimeCmdName:         .db     "gt"
+08CF-             M    2        getTimeCmdNameEnd:
+08CF-                876                        >DEF_CMD_NAME   "sd ",setDateCmd
+08CF-73 64 20     M    1        setDateCmdName:         .db     "sd "
+08D2-             M    2        setDateCmdNameEnd:
+08D2-                877                        >DEF_CMD_NAME   "gd",getDateCmd
+08D2-67 64        M    1        getDateCmdName:         .db     "gd"
+08D4-             M    2        getDateCmdNameEnd:
+08D4-                878                        >DEF_CMD_NAME   "md ",memoryDumpToScreenCmd
+08D4-6D 64 20     M    1        memoryDumpToScreenCmdName:         .db     "md "
+08D7-             M    2        memoryDumpToScreenCmdNameEnd:
+08D7-                879                        >DEF_CMD_NAME   "mi ",memoryDumpToIntelHexCmd
+08D7-6D 69 20     M    1        memoryDumpToIntelHexCmdName:         .db     "mi "
+08DA-             M    2        memoryDumpToIntelHexCmdNameEnd:
+08DA-                880                        >DEF_CMD_NAME   "run ",runCmd
+08DA-72 75 6E 20  M    1        runCmdName:         .db     "run "
+08DE-             M    2        runCmdNameEnd:
+08DE-                881                        >DEF_CMD_NAME   "reset",resetCmd
+08DE-72 65 73 65 
+     74           M    1        resetCmdName:         .db     "reset"
+08E3-             M    2        resetCmdNameEnd:
+08E3-                882                        >DEF_CMD_NAME   "in ",inputFromPortCmd
+08E3-69 6E 20     M    1        inputFromPortCmdName:         .db     "in "
+08E6-             M    2        inputFromPortCmdNameEnd:
+08E6-                883                        >DEF_CMD_NAME   "out ",outputToPortCmd
+08E6-6F 75 74 20  M    1        outputToPortCmdName:         .db     "out "
+08EA-             M    2        outputToPortCmdNameEnd:
+08EA-                884                        >DEF_CMD_NAME   "em ",editMemoryCmd
+08EA-65 6D 20     M    1        editMemoryCmdName:         .db     "em "
+08ED-             M    2        editMemoryCmdNameEnd:
+08ED-                885        ;
+08ED-                886        ; table to be copied as-is to upper RAM, it must be in the same order
+08ED-                887        ; as declared in dino85.inc file (in SYS_MEM) area
+08ED-                888        ;
+08ED-                889
+08ED-                890        sysProcJumpTableDef:
+08ED-                891                        >DEF_SYS_PROC_JUMP lcdInit
+08ED-C3           M    1                                .db     JMP_OPC
+08EE-F4 07        M    2                                .dw     lcdInit
+08F0-                892                        >DEF_SYS_PROC_JUMP lcdPutChar
+08F0-C3           M    1                                .db     JMP_OPC
+08F1-F5 07        M    2                                .dw     lcdPutChar
+08F3-                893                        >DEF_SYS_PROC_JUMP lcdPutCmd
+08F3-C3           M    1                                .db     JMP_OPC
+08F4-F6 07        M    2                                .dw     lcdPutCmd
+08F6-                894                        >DEF_SYS_PROC_JUMP lcdPutStr
+08F6-C3           M    1                                .db     JMP_OPC
+08F7-F7 07        M    2                                .dw     lcdPutStr
+08F9-                895                        >DEF_SYS_PROC_JUMP uartInit
+08F9-C3           M    1                                .db     JMP_OPC
+08FA-5C 07        M    2                                .dw     uartInit
+08FC-                896                        >DEF_SYS_PROC_JUMP uartGetChar
+08FC-C3           M    1                                .db     JMP_OPC
+08FD-B3 07        M    2                                .dw     uartGetChar
+08FF-                897                        >DEF_SYS_PROC_JUMP uartGetStr
+08FF-C3           M    1                                .db     JMP_OPC
+0900-BD 07        M    2                                .dw     uartGetStr
+0902-                898                        >DEF_SYS_PROC_JUMP uartPutChar
+0902-C3           M    1                                .db     JMP_OPC
+0903-D6 07        M    2                                .dw     uartPutChar
+0905-                899                        >DEF_SYS_PROC_JUMP uartPutStr
+0905-C3           M    1                                .db     JMP_OPC
+0906-E2 07        M    2                                .dw     uartPutStr
+0908-                900                        >DEF_SYS_PROC_JUMP memCopy
+0908-C3           M    1                                .db     JMP_OPC
+0909-4B 07        M    2                                .dw     memCopy
+090B-                901                        >DEF_SYS_PROC_JUMP memFill
+090B-C3           M    1                                .db     JMP_OPC
+090C-3E 07        M    2                                .dw     memFill
+090E-                902        sysProcJumpTableDefEnd:
+090E-                903
+090E-                904
+090E-                905        ; end of dinomon.asm
+090E-                906

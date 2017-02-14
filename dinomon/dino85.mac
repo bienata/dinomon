@@ -1,0 +1,40 @@
+
+LENGTH	.ma destReg, dataLabel
+		mvi	]1,]2End-]2
+		.em
+
+
+ADD_CMD_HANDLER	.ma userInputPtr,commandName
+		lxi	B,]1
+		lxi	D,]2Name
+		mvi	L,]2NameEnd-]2Name
+		call	strEquals
+		jc	]2Handler
+		.em
+
+
+		
+DEF_CMD_NAME	.ma	commandTemplate,commandName
+]2Name:		.db 	"]1"
+]2NameEnd:
+		.em
+
+
+		
+DEF_SYS_PROC_JUMP	.ma	 
+			.db	JMP_OPC
+			.dw	]1
+			.em
+
+
+SET_CY_FLAG		.ma
+			stc	; CY = 1
+			.em
+
+
+CLEAR_CY_FLAG		.ma
+			stc	; CY = 1
+			cmc	; CY = /CY = 0
+			.em
+
+

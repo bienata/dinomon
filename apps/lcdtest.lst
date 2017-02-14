@@ -1,0 +1,150 @@
+0000-                  4                        ;--------------------------------------------------------
+0000-                  5                        ; lcdtest.asm - small test application as a template
+0000-                  6                        ; for other ones. Just include dino85.inc file to
+0000-                  7                        ; have access to all (most?) dino-85 features,
+0000-                  8                        ; set entry point to 8000h or better to: RAM_BEGIN
+0000-                  9                        ;
+0000-                 10                        ; Important: do not call dino system functions from ROM,
+0000-                 11                        ; use RAM locations instead, as declared in dino85.inc
+0000-                 12                        ; Dino-mon may change, so all direct invocations might
+0000-                 13                        ; produce unexpected results...feel warned.
+0000-                 14                        ;
+0000-                 15                        ; compile:
+0000-                 16                        ;       sbasm lcdtest.asm
+0000-                 17                        ; run:
+0000-                 18                        ;       when loaded - type run 8000<enter> on terminal
+0000-                 19                        ;--------------------------------------------------------
+0000-                 20                        .in     ../common/dino85.inc
+0000-            I     1        ;----------------------------------------------------------------
+0000-            I     2        ; dino85.inc
+0000-            I     3        ;----------------------------------------------------------------
+0000-            I     4
+0000-            I     5        ; general hardware definitions
+0000-            I     6
+0000             I     7        CS1_BASE        .eq     00h
+0020             I     8        CS2_BASE        .eq     20h
+0040             I     9        CS3_BASE        .eq     40h
+0060             I    10        CS4_BASE        .eq     60h
+0080             I    11        CS5_BASE        .eq     80h
+00A0             I    12        CS6_BASE        .eq     0A0h
+0000-            I    13
+0000             I    14        ROM_BEGIN       .eq     0h
+1FFF             I    15        ROM_END         .eq     1FFFh
+0000-            I    16
+8000             I    17        RAM_BEGIN       .eq     8000h
+FFFF             I    18        RAM_END         .eq     0FFFFh
+0000-            I    19
+0000-            I    20        ; begin of RAM reserved for internal purpose
+FD00             I    21        SYS_MEM_BEGIN   .eq     0FD00h
+0000-            I    22
+0000-            I    23        ; initial stack settings
+FCFE             I    24        SYSTEM_STACK    .eq     SYS_MEM_BEGIN-2
+0000-            I    25
+0000-            I    26
+0000-            I    27        ; 8085 CPU interrupt vectors fixed locations
+0000-            I    28
+0008             I    29        RST_1_ROM_VECT  .eq     08h
+0010             I    30        RST_2_ROM_VECT  .eq     10h
+0018             I    31        RST_3_ROM_VECT  .eq     18h
+0020             I    32        RST_4_ROM_VECT  .eq     20h
+0024             I    33        TRAP_ROM_VECT   .eq     24h
+0028             I    34        RST_5_ROM_VECT  .eq     28h
+002C             I    35        RST_55_ROM_VECT .eq     2Ch
+0030             I    36        RST_6_ROM_VECT  .eq     30h
+0034             I    37        RST_65_ROM_VECT .eq     34h
+0038             I    38        RST_7_ROM_VECT  .eq     38h
+003C             I    39        RST_75_ROM_VECT .eq     3Ch
+0000-            I    40
+0000-            I    41
+0000-            I    42        ; consts for system communication module
+0000-            I    43
+0000-            I    44        ; the UART chip
+0000             I    45        SYS_UART_BASE   .eq     CS1_BASE
+0000             I    46        SYS_UART_DATA   .eq     SYS_UART_BASE
+0001             I    47        SYS_UART_CMST   .eq     SYS_UART_BASE+1
+0000-            I    48
+0000-            I    49        ; 8-bit simple I/O - have the same addresses (!)
+0002             I    50        SYS_OUTPORT     .eq     CS1_BASE+2
+0002             I    51        SYS_INPORT      .eq     CS1_BASE+2
+0000-            I    52
+0000-            I    53
+0000-            I    54        ; ========= SYS_MEM do-not-touch area ==============
+0000-            I    55
+0000-            I    56        ; system memory layout (at the top of RAM)
+0000-            I    57        ; 512 bytes reserved for internal usage
+0000-            I    58
+FD00-            I    59                        .or     SYS_MEM_BEGIN
+FD00-            I    60                        .du
+FD00-            I    61
+FD00-            I    62        ; terminal mode, 0 - mono, 1 - decorated/color
+FD00-            I    63        terminalMode    .bs     1
+FD01-            I    64
+FD01-            I    65        ; system serial communication buffer, 128 bytes is enough
+FD01-            I    66        serialBuffer    .bs     80h     ; receive/transmit
+FD81-            I    67        serialBufferEnd:
+FD81-            I    68
+FD81-            I    69        ; copy of last command, may be re-executed
+FD81-            I    70        commandBuffer   .bs     80h
+FE01-            I    71        commandBufferEnd:
+FE01-            I    72
+FE01-            I    73
+FE01-            I    74        ; general purspose text buffer for string operations,
+FE01-            I    75        ; conversions etc...
+FE01-            I    76        textBuffer      .bs     80h     ; receive/transmit/str oper.
+FE81-            I    77        textBufferEnd:
+FE81-            I    78
+FE81-            I    79        ; general purspose text additional buffer for...
+FE81-            I    80        auxBuffer       .bs     80h     ; receive/transmit/str oper.
+FF01-            I    81        auxBufferEnd:
+FF01-            I    82
+FF01-            I    83        ; dynamic interrupt vectors, 3 bytes for each one
+FF01-            I    84        rst1RamVector   .bs     3       ; RST 1
+FF04-            I    85        rst2RamVector   .bs     3       ; RST 2
+FF07-            I    86        rst3RamVector   .bs     3       ; RST 3
+FF0A-            I    87        rst4RamVector   .bs     3       ; RST 4
+FF0D-            I    88        trapRamVector   .bs     3       ; TRAP signal
+FF10-            I    89        rst5RamVector   .bs     3       ; RST 5
+FF13-            I    90        rst55RamVector  .bs     3       ; RST5.5
+FF16-            I    91        rst6RamVector   .bs     3       ; RST 6
+FF19-            I    92        rst65RamVector  .bs     3       ; RST6.5
+FF1C-            I    93        rst7RamVector   .bs     3       ; RST 7
+FF1F-            I    94        rst75RamVector  .bs     3       ; RST7.5
+FF22-            I    95
+FF22-            I    96
+FF22-            I    97        ; system procedures entry points available at fixed
+FF22-            I    98        ; locations as stored in system RAM area
+FF22-            I    99        sysProcJumpTable:
+FF22-            I   100        dnLcdInit       .bs     3       ; as lcdInit
+FF25-            I   101        dnLcdPutChar    .bs     3       ; as lcdPutChar
+FF28-            I   102        dnLcdPutCmd     .bs     3       ; as lcdPutCmd
+FF2B-            I   103        dnLcdPutStr     .bs     3       ; as lcdPutStr
+FF2E-            I   104        dnUartInit      .bs     3       ; as uartInit
+FF31-            I   105        dnUartGetChar   .bs     3       ; as uartGetChar
+FF34-            I   106        dnUartGetStr    .bs     3       ; as uartGetStr
+FF37-            I   107        dnUartPutChar   .bs     3       ; as uartPutChar
+FF3A-            I   108        dnUartPutStr    .bs     3       ; as uartPutStr
+FF3D-            I   109        dnMemCopy       .bs     3       ; as memCopy
+FF40-            I   110        dnMemFill       .bs     3       ; as memFill
+FF43-            I   111        sysProcJumpTableEnd:
+FF43-            I   112                        .ed
+FF43-            I   113        ; end of dino85.inc
+FF43-                 21                        ;
+8000-                 22                        .or     RAM_BEGIN
+8000-                 23                        ;
+8000-                 24                        ; initialise LCD module
+8000-CD 22 FF         25 (  18)                 call    dnLcdInit
+8003-                 26                        ;
+8003-                 27                        ; show defined message
+8003-26 09            28 (   7)                 mvi     H, helloMessage1
+8005-CD 2B FF         29 (  18)                 call    dnLcdPutStr
+8008-                 30                        ; then hang until reset
+8008-                 31                        ;  jmp  $
+8008-76               32 (   5)                 hlt
+8009-                 33                        ;
+8009-6D 61 69 64 
+     69 6E 20 6D 
+     68 61 69 74 
+     68 20 3A 2D 
+     29 0D 0A 00      34        helloMessage1: .db      "maidin mhaith :-)",13,10,0
+801D-                 35                        ;
+801D-                 36                        ; end of lcdtest.asm
